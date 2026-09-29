@@ -2490,7 +2490,9 @@
   };
 
   function storageSummary() {
-    if (cloud.ready && !cloud.disabled) return 'Your data is saved to your Claude account and syncs across your devices.';
+    if (cloud.ready && !cloud.disabled) {
+      return `Your data is saved to your ${cloud.provider === 'google' ? 'Google' : 'Claude'} account and syncs across your devices.`;
+    }
     return 'Data is stored only in this browser.';
   }
 
@@ -2710,18 +2712,25 @@
       setSyncStatus('local');
       return;
     }
-    connectCloud(col, uid);
+    connectCloud(col, uid, 'claude');
   }
 
   // Starts syncing with one person's private collection. Works with the claude.ai page storage and
   // with Firestore alike: both hold a "tracker" document plus one "week-<start>" document per week.
-  function connectCloud(col, uid) {
+  function connectCloud(col, uid, provider) {
     disconnectCloud();
-    Object.assign(cloud, { col, uid, ready: false, disabled: false, remoteWeeks: new Map(), pending: null, retried: false });
+    Object.assign(cloud, { col, uid, provider, ready: false, disabled: false, remoteWeeks: new Map(), pending: null, retried: false });
     setSyncStatus('connecting');
-    cloud.unsub = col.onSnapshot(onRemoteSnapshot, () => {
+    cloud.unsub = col.onSnapshot(onRemoteSnapshot, e => {
+      const code = e && e.code;
       cloud.disabled = true;
-      setSyncStatus('error', 'Lost connection to your cloud save. Reload the page to reconnect.');
+      if (code === 'permission-denied' || code === 'invalid_argument') {
+        setSyncStatus('error', 'Cloud save refused access. Saved on this device only for now.');
+        console.warn('[sync] read refused:', e);
+      } else {
+        setSyncStatus('error', 'Lost connection to your cloud save. Reload the page to reconnect.');
+        console.warn('[sync] listener stopped:', e);
+      }
     });
   }
 
@@ -2840,7 +2849,7 @@
       renderAccount();
       if (user) {
         canClearAll = IS_LOCAL || (!!user.email && admins.includes(await sha256Hex(user.email.trim().toLowerCase())));
-        connectCloud(fb.db.collection('users').doc(user.uid).collection('docs'), user.uid);
+        connectCloud(fb.db.collection('users').doc(user.uid).collection('docs'), user.uid, 'google');
       } else {
         canClearAll = IS_LOCAL;
         disconnectCloud();

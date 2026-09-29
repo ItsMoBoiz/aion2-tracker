@@ -6,9 +6,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{uid}/docs/{docId} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == uid
-                         && docId.size() <= 64;
+      // Reading the whole list is a query, where the document name isn't known yet,
+      // so the read rule checks only who is asking.
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null && request.auth.uid == uid && docId.size() <= 64;
     }
   }
 }
