@@ -257,6 +257,7 @@
     plus: '<path d="M12 5v14M5 12h14"/>',
     minus: '<path d="M5 12h14"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    checkAll: '<path d="M2 12.5l4.5 4.5L15 8"/><path d="M10.5 16.5l.5.5L21.5 7"/>',
     x: '<path d="M6 6l12 12M18 6L6 18"/>',
     history: '<path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>',
     sliders: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
@@ -804,7 +805,8 @@
         <span class="task-name">${esc(t.name)}${t.mainOnly ? ` <span class="mini-crown" title="Main only">${icon('crown')}</span>` : ''}</span>
         ${multi ? `<span class="task-count">${p}/${t.count}</span>` : ''}
       </button>
-      ${multi && p > 0 ? `<button class="icon-btn xs" data-action="dec" ${ds} aria-label="Remove one from ${esc(t.name)}">${icon('minus')}</button>` : ''}
+      ${multi && p > 0 ? `<button class="icon-btn xs" data-action="dec" ${ds} aria-label="Remove one from ${esc(t.name)}" title="Remove one">${icon('minus')}</button>` : ''}
+      ${multi && !done ? `<button class="row-max" data-action="max" ${ds} aria-label="Mark all ${t.count} ${esc(t.name)} done" title="Mark all ${t.count} done">${icon('checkAll')}<span>Max</span></button>` : ''}
     </li>`;
   }
 
@@ -3254,19 +3256,36 @@
     if (!latest || news.popShownFor === latest.id || modalOpen()) return;
     news.popShownFor = latest.id;
     hideNewsPop();
+    const more = unreadNews().length - 1;
+    const thumb = news.source !== 'cloud' && latest.thumb; // claude.ai pages can't show outside pictures
+    const summary = textOf(latest.summary);
     const pop = document.createElement('aside');
     pop.id = 'news-pop';
-    pop.className = 'news-pop';
+    pop.className = `news-pop ${thumb ? 'has-thumb' : ''}`;
     pop.setAttribute('role', 'status');
-    pop.innerHTML = `<button class="icon-btn xs news-pop-x" data-np="close" aria-label="Dismiss">${icon('x')}</button>
-      <span class="news-pop-kicker">${icon('news')}New announcement</span>
-      <b class="news-pop-title"></b>
-      <span class="news-pop-date">${esc(fmtAgo(latest.postedAt))}</span>
-      <div class="news-pop-actions">
-        <button class="btn primary sm" data-np="read">Read</button>
-        <button class="btn ghost sm" data-np="all">All news</button>
+    pop.setAttribute('aria-label', 'New AION 2 announcement');
+    pop.innerHTML = `
+      <div class="np-banner">
+        ${thumb ? `<img src="${esc(latest.thumb)}" alt="" loading="lazy">` : `<span class="np-banner-ico">${icon('news')}</span>`}
+        <span class="np-badges">
+          <span class="np-new">New</span>
+          ${more > 0 ? `<span class="np-more">+${more} more</span>` : ''}
+        </span>
+        <button class="np-x" data-np="close" aria-label="Dismiss">${icon('x')}</button>
+      </div>
+      <div class="np-body">
+        <span class="np-kicker">${icon('news')}AION 2 announcement · <time>${esc(fmtAgo(latest.postedAt))}</time></span>
+        <b class="np-title"></b>
+        ${summary ? '<p class="np-summary"></p>' : ''}
+        <div class="np-actions">
+          <button class="btn primary sm" data-np="read">Read ${icon('arrow')}</button>
+          <button class="btn ghost sm" data-np="all">See all${more > 0 ? ` (${more + 1})` : ''}</button>
+        </div>
       </div>`;
-    $('.news-pop-title', pop).textContent = latest.title;
+    $('.np-title', pop).textContent = latest.title;
+    if (summary) $('.np-summary', pop).textContent = summary;
+    const img = $('.np-banner img', pop);
+    if (img) img.addEventListener('error', () => { pop.classList.remove('has-thumb'); img.replaceWith(Object.assign(document.createElement('span'), { className: 'np-banner-ico', innerHTML: icon('news') })); });
     pop.addEventListener('click', e => {
       const b = e.target.closest('[data-np]');
       if (!b) return;
