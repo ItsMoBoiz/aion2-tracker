@@ -640,9 +640,9 @@
         </div>
         <div class="top-actions">
           <button class="btn ghost news-btn" id="news-btn" data-action="open-news" title="Official AION 2 announcements" hidden>${icon('news')}<span>News</span><b class="news-badge" id="news-badge" hidden></b></button>
-          <span id="account-slot" class="account-slot"></span>
           <button class="btn ghost" data-action="open-history" title="Weekly history">${icon('history')}<span>History</span></button>
           <button class="btn ghost" data-action="open-settings" title="Tasks, resets and scoring">${icon('sliders')}<span>Settings</span></button>
+          <div id="account-slot" class="account-slot"></div>
         </div>
       </header>
       <div class="update-banner" id="update-banner" hidden>
@@ -716,11 +716,31 @@
       dd += d.done; dt += d.total; wd += w.done; wt += w.total;
     }
     const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
+    const alts = state.characters.filter(c => c.role !== 'main').length;
+    const hasMain = !!mainChar();
+    const ringTile = (kind, label, done, total) => {
+      const p = pct(done, total);
+      return `<div class="stat-tile ${kind} ${total && done >= total ? 'is-complete' : ''}" style="--p:${p}%">
+        <span class="st-ring" role="img" aria-label="${p}% of ${label.toLowerCase()}"><i>${p}%</i></span>
+        <div class="st-body">
+          <small>${label}</small>
+          <b>${done}<i>/${total}</i></b>
+          <span class="st-sub">${icon('clock')}resets in <span data-countdown="${kind}"></span></span>
+        </div>
+      </div>`;
+    };
     return `
-      <section class="tiles">
-        <div class="tile"><small>Characters</small><b>${state.characters.length}</b><span class="fine">${state.history.length} archived week${state.history.length === 1 ? '' : 's'}</span></div>
-        <div class="tile daily"><small>Dailies done</small><b>${dd}<i>/${dt}</i></b>${bar(pct(dd, dt), 'All dailies')}</div>
-        <div class="tile weekly"><small>Weeklies done</small><b>${wd}<i>/${wt}</i></b>${bar(pct(wd, wt), 'All weeklies')}</div>
+      <section class="stats-strip">
+        <div class="stat-tile chars">
+          <span class="st-icon">${icon('grid')}</span>
+          <div class="st-body">
+            <small>Characters</small>
+            <b>${state.characters.length}</b>
+            <span class="st-sub">${hasMain ? `${icon('crown')}1 main · ` : ''}${alts} alt${alts === 1 ? '' : 's'} · ${state.history.length} week${state.history.length === 1 ? '' : 's'} archived</span>
+          </div>
+        </div>
+        ${ringTile('daily', 'Dailies done', dd, dt)}
+        ${ringTile('weekly', 'Weeklies done', wd, wt)}
       </section>
       ${mainChar() ? '' : `<p class="notice">${icon('crown')}<span>No main character is set. Server-wide dailies such as Duty Missions only show on your main. Open a character and choose <b>Make main</b>.</span></p>`}
       <section class="card-grid">${orderedChars().map(charCardHTML).join('')}</section>`;
@@ -1610,13 +1630,24 @@
     let tzText = draft.settings.tz;
     const openDetails = new Set(); // task editor rows whose Details are expanded (kept across repaints)
     let taskKind = 'daily';        // which activity list the Tasks tab is showing
-    const TABS = [['tasks', 'Tasks'], ['resets', 'Reset times'], ['scoring', 'Scoring'], ['data', 'Data']];
+    // [key, label, icon, one-line description]
+    const TABS = [
+      ['tasks', 'Tasks', 'check', 'Activities and lists'],
+      ['resets', 'Reset times', 'clock', 'Daily and weekly reset'],
+      ['scoring', 'Scoring', 'sword', 'Gear and stat weights'],
+      ['data', 'Data', 'download', 'Backup and restore'],
+    ];
 
     const m = openModal({
       title: 'Settings',
-      size: 'wide',
-      body: `<div class="seg" role="tablist">${TABS.map(([k, l]) => `<button type="button" role="tab" class="seg-btn" data-m="tab" data-tab="${k}">${l}</button>`).join('')}</div>
-             <div class="settings-pane"></div>`,
+      size: 'wide settings-modal',
+      body: `<div class="settings-layout">
+          <nav class="settings-nav" role="tablist" aria-label="Settings sections">
+            ${TABS.map(([k, l, ic, d]) => `<button type="button" role="tab" class="snav-btn" data-m="tab" data-tab="${k}">
+              <span class="snav-ico">${icon(ic)}</span><span class="snav-text"><b>${l}</b><small>${d}</small></span></button>`).join('')}
+          </nav>
+          <section class="settings-pane" aria-live="polite"></section>
+        </div>`,
       footer: `<span class="fine foot-note">Changes apply when you save.</span>
                <button class="btn ghost" data-m="cancel">Cancel</button>
                <button class="btn primary" data-m="save">Save changes</button>`,
@@ -1735,13 +1766,17 @@
     }
 
     function paint() {
-      $$('.seg-btn', m).forEach(b => {
+      $$('.snav-btn', m).forEach(b => {
         const on = b.dataset.tab === tab;
         b.classList.toggle('is-active', on);
         b.setAttribute('aria-selected', on);
       });
       const pane = $('.settings-pane', m);
-      pane.innerHTML = tab === 'tasks' ? tasksPane() : tab === 'resets' ? resetsPane() : tab === 'scoring' ? scoringPane() : dataPane();
+      const [, label, ic, desc] = TABS.find(t => t[0] === tab);
+      const scrollTop = pane.scrollTop;
+      pane.innerHTML = `<header class="pane-head"><span class="pane-ico">${icon(ic)}</span><div><h3>${label}</h3><p>${desc}</p></div></header>` +
+        (tab === 'tasks' ? tasksPane() : tab === 'resets' ? resetsPane() : tab === 'scoring' ? scoringPane() : dataPane());
+      pane.scrollTop = scrollTop;
       if (tab === 'resets') paintPreview();
       $('.modal-foot', m).classList.toggle('is-muted', tab === 'data');
     }
@@ -2465,7 +2500,9 @@
     'open-history'() { openHistory(); },
     'open-news'() { openNewsList(); },
     'sign-in'() { signIn(); },
-    account() { openAccount(); },
+    account() { toggleAccountMenu(); },
+    'account-backup'() { toggleAccountMenu(false); openSettings('data'); },
+    'sign-out'() { signOut(); },
     'open-notes'() {
       openModal({
         title: 'Your notes',
@@ -2535,6 +2572,7 @@
 
   document.addEventListener('click', e => {
     if (!e.target.closest('.info-wrap')) closeInfoPops();
+    if (!e.target.closest('.account-slot')) { const am = $('#account-menu'); if (am && !am.hidden) toggleAccountMenu(false); }
     const el = e.target.closest('[data-action]');
     // Page controls live in #app; the notes panel also works inside its dialog.
     if (!el || (!$('#app').contains(el) && !el.closest('.notes-ui')) || el.disabled) return;
@@ -2590,6 +2628,8 @@
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if ($$('.info-pop').some(p => !p.hidden)) { closeInfoPops(); return; }
+    const am = $('#account-menu');
+    if (am && !am.hidden) { toggleAccountMenu(false); $('#account-btn').focus(); return; }
     const top = $('#modal-root').lastElementChild;
     if (top) closeModal(top);
   });
@@ -3011,12 +3051,30 @@
     if (!slot) return;
     if (!fb.ready) { slot.innerHTML = ''; return; }
     const u = fb.user;
-    slot.innerHTML = u
-      ? `<button class="btn ghost account-btn" data-action="account" title="Signed in as ${esc(u.email || u.displayName || '')}">
-          ${u.photoURL ? `<img class="account-pic" src="${esc(u.photoURL)}" alt="" referrerpolicy="no-referrer">` : `<span class="account-pic">${esc(initials(u.displayName || u.email || '?'))}</span>`}
-          <span>${esc((u.displayName || u.email || 'Account').split(' ')[0])}</span></button>`
-      : `<button class="btn primary signin-btn" data-action="sign-in" title="Sign in to sync your tracker across browsers and devices">
+    if (!u) {
+      slot.innerHTML = `<button class="btn signin-btn" data-action="sign-in" title="Sign in to sync your tracker across browsers and devices">
           ${GOOGLE_G}<span>Sign in to sync</span></button>`;
+      return;
+    }
+    const pic = size => (u.photoURL
+      ? `<img class="account-pic ${size}" src="${esc(u.photoURL)}" alt="" referrerpolicy="no-referrer">`
+      : `<span class="account-pic ${size}">${esc(initials(u.displayName || u.email || '?'))}</span>`);
+    slot.innerHTML = `
+      <button class="account-btn" id="account-btn" data-action="account" aria-haspopup="menu" aria-expanded="false"
+        aria-controls="account-menu" title="${esc(u.email || u.displayName || 'Account')}">
+        ${pic('')}<span class="account-name">${esc((u.displayName || u.email || 'Account').split(' ')[0])}</span>${icon('down')}
+      </button>
+      <div class="account-menu" id="account-menu" role="menu" aria-label="Account" hidden>
+        <div class="am-head">
+          ${pic('lg')}
+          <div class="am-id"><b>${esc(u.displayName || 'Signed in')}</b><small>${esc(u.email || '')}</small></div>
+        </div>
+        <p class="am-sync"><i></i><span></span></p>
+        <div class="am-items">
+          <button role="menuitem" class="am-item" data-action="account-backup">${icon('download')}<span>Backup &amp; data</span></button>
+          <button role="menuitem" class="am-item danger" data-action="sign-out">${icon('arrow')}<span>Sign out</span></button>
+        </div>
+      </div>`;
   }
 
   const GOOGLE_G = `<svg class="ico" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>`;
@@ -3039,28 +3097,26 @@
     }
   }
 
-  function openAccount() {
-    const u = fb.user;
-    if (!u) return;
-    const m = openModal({
-      title: 'Your account',
-      size: 'sm',
-      body: `<div class="account-card">
-          ${u.photoURL ? `<img class="account-pic lg" src="${esc(u.photoURL)}" alt="" referrerpolicy="no-referrer">` : ''}
-          <div><b>${esc(u.displayName || 'Signed in')}</b><br><span class="fine">${esc(u.email || '')}</span></div>
-        </div>
-        <p class="fine">Your characters, progress, history and notes sync to this Google account. Sign in with it in any browser to pick up where you left off.</p>
-        <p class="fine">Signing out keeps a copy in this browser but stops syncing it.</p>`,
-      footer: `<button class="btn ghost" data-m="out">Sign out</button>
-               <button class="btn primary" data-m="close">Done</button>`,
-      actions: {
-        async out() {
-          closeModal(m);
-          await fb.auth.signOut();
-          toast('Signed out. This browser keeps its copy; sign in again to sync.');
-        },
-      },
-    });
+  // The account dropdown under the avatar pill.
+  function toggleAccountMenu(force) {
+    const menu = $('#account-menu'), btn = $('#account-btn');
+    if (!menu || !btn) return;
+    const open = force != null ? force : menu.hidden;
+    if (open) {
+      const status = $('#sync-status');
+      const line = $('.am-sync', menu);
+      line.dataset.state = status ? status.dataset.state : 'off';
+      $('span', line).textContent = status && status.textContent ? status.textContent : 'Signed in';
+    }
+    menu.hidden = !open;
+    btn.setAttribute('aria-expanded', String(open));
+    if (open) { const first = $('[role="menuitem"]', menu); if (first) first.focus(); }
+  }
+
+  async function signOut() {
+    toggleAccountMenu(false);
+    await fb.auth.signOut();
+    toast('Signed out. This browser keeps its copy; sign in again to sync.');
   }
 
   async function startFirebase() {
