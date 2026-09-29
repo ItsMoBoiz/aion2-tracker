@@ -3,10 +3,10 @@
    These values are public by design; the Firestore security rules keep each person's data private.
    Leave apiKey empty to turn sign-in off (the app then saves in the browser only). */
 window.AION2_FIREBASE = {
-  apiKey: '',
-  authDomain: '',
-  projectId: '',
-  appId: '',
+  apiKey: 'AIzaSyBUi6m886TpapZRTxYaRhJdgrxfWgbwpHA',
+  authDomain: 'aion2-tracker-c67c2.firebaseapp.com',
+  projectId: 'aion2-tracker-c67c2',
+  appId: '1:143531270993:web:cc55a8c2c58e1b1b0ea970',
 
   // SHA-256 of the admin's sign-in email (lowercase), so the address itself isn't published.
   // Only this account sees "Clear all data" on the public site.
