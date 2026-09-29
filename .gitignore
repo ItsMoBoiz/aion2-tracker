@@ -4,6 +4,9 @@ dist/
 # Not part of the app: a stylesheet from another project, kept only as a design reference
 public/css/it-operations-dashboard.css
 
+# News files written at deploy time by tools/fetch_news.py
+public/news/
+
 # Python / OS clutter
 __pycache__/
 *.pyc

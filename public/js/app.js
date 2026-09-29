@@ -95,39 +95,106 @@
 
   const USER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
+  /* Official Aion 2 activity list, shared by everyone. Each entry has a permanent key.
+     To change everyone's lists, edit this list and publish:
+       - New activity:      add an entry with a new key.
+       - Changed activity:  edit its fields and raise its rev (e.g. rev: 2). Each person gets the new
+                            values for every field they haven't changed themselves.
+       - Removed from game: add retired: true and raise rev. It's hidden (not deleted) for everyone.
+     People's own activities, renames, hidden or deleted activities, and progress are always kept. */
+  const CATALOG = [
+    { kind: 'daily', key: 'daily.duty-missions', rev: 1, name: 'Duty Missions', count: 5, desc: 'Server daily completions',
+      location: 'Journal → Duty', mainOnly: true,
+      info: 'Duty Missions can only be completed once per server each day. You can\'t do them on your alts, only on your main character.' },
+    { kind: 'daily', key: 'daily.supply-requests', rev: 1, name: 'Daily Supply Requests', count: 1, desc: 'Complete the daily Supply Request' },
+    { kind: 'daily', key: 'daily.expedition-conquest', rev: 1, name: 'Expedition Conquest', count: 1, desc: 'Daily Expedition Conquest' },
+    { kind: 'daily', key: 'daily.transcendence', rev: 1, name: 'Transcendence', count: 1, desc: 'Arcana + Stigma' },
+    { kind: 'daily', key: 'daily.nightmares', rev: 1, name: 'Nightmares', count: 2, desc: 'Daily Nightmare entries' },
+
+    { kind: 'weekly', key: 'weekly.dungeons', rev: 1, name: 'Weekly Dungeons', count: 14, desc: '14 dungeon entries, track each run' },
+    { kind: 'weekly', key: 'weekly.sanctuary', rev: 1, name: 'Sanctuary', count: 1, desc: '10-player weekly raid' },
+    { kind: 'weekly', key: 'weekly.ascension-trials', rev: 1, name: 'Ascension Trials', count: 3, desc: 'Stigma Shards + Daevanion Ariel rewards' },
+    { kind: 'weekly', key: 'weekly.nightmares', rev: 1, name: 'Nightmares', count: 14, desc: '14 weekly Nightmare entries' },
+    { kind: 'weekly', key: 'weekly.command-missions', rev: 1, name: 'Command Mission / Weekly Contracts', count: 12, desc: '12 missions per week' },
+    { kind: 'weekly', key: 'weekly.abyss-commands', rev: 1, name: 'Abyss Commands', count: 20, desc: '20 weekly Abyss Command entries' },
+    { kind: 'weekly', key: 'weekly.shop', rev: 1, name: 'Weekly Shop', count: 1, desc: 'Odyle Energy and other weekly shop rewards' },
+    { kind: 'weekly', key: 'weekly.shugo-festival', rev: 1, name: 'Shugo Festival', count: 14, desc: 'Weekly Shugo Festival entries' },
+    { kind: 'weekly', key: 'weekly.abyss-points-cap', rev: 1, name: 'Weekly Abyss Points Cap', count: 1, desc: 'Track whether the weekly Abyss Points cap has been reached' },
+    { kind: 'weekly', key: 'weekly.battlefield-pvp', rev: 1, name: 'Battlefield PvP', count: 3, desc: 'Weekly Battlefield PvP entries' },
+    { kind: 'weekly', key: 'weekly.abyss-corridors', rev: 1, name: 'Abyss Corridors', count: 3, desc: 'Weekly Abyss Corridor entries' },
+    { kind: 'weekly', key: 'weekly.dimensional-invasion', rev: 1, name: 'Dimensional Invasion', count: 14, desc: 'Weekly Dimensional Invasion rewards' },
+
+    { kind: 'static', key: 'static.regional-quests', rev: 1, name: 'Regional Quests' },
+    { kind: 'static', key: 'static.sealed-dungeons', rev: 1, name: 'Sealed Dungeons' },
+    { kind: 'static', key: 'static.strongholds', rev: 1, name: 'Strongholds' },
+    { kind: 'static', key: 'static.empyrean-trace', rev: 1, name: 'Empyrean Trace Collection' },
+    { kind: 'static', key: 'static.region-completion', rev: 1, name: 'Region Completion' },
+    { kind: 'static', key: 'static.abyss-progression', rev: 1, name: 'Abyss Progression' },
+    { kind: 'static', key: 'static.one-time-rewards', rev: 1, name: 'Important One-Time Rewards' },
+    { kind: 'static', key: 'static.collection-objectives', rev: 1, name: 'Collection Objectives' },
+  ];
+  const CATALOG_FIELDS = ['name', 'count', 'desc', 'location', 'info', 'mainOnly'];
+
+  // The official values of one catalog entry, in the same shape as a task.
+  function officialOf(e) {
+    return { name: e.name, count: e.count || 1, desc: e.desc || '', location: e.location || '', info: e.info || '', mainOnly: !!e.mainOnly };
+  }
+
+  // A task made from a catalog entry. Its id comes from the key, so every device creates the same one.
+  function catalogTask(e) {
+    return normTask({ id: 'cat-' + e.key, ...officialOf(e), key: e.key, rev: e.rev, official: officialOf(e), off: !!e.retired });
+  }
+
   function defaultTasks() {
-    const make = list => list.map(t => normTask({ id: uid(), ...t }));
-    return {
-      daily: make([
-        {
-          name: 'Duty Missions', count: 5, desc: 'Server daily completions', location: 'Journal → Duty', mainOnly: true,
-          info: 'Duty Missions can only be completed once per server each day. You can\'t do them on your alts, only on your main character.',
-        },
-        { name: 'Daily Supply Requests', count: 1, desc: 'Complete the daily Supply Request' },
-        { name: 'Expedition Conquest', count: 1, desc: 'Daily Expedition Conquest' },
-        { name: 'Transcendence', count: 1, desc: 'Arcana + Stigma' },
-        { name: 'Nightmares', count: 2, desc: 'Daily Nightmare entries' },
-      ]),
-      weekly: make([
-        { name: 'Weekly Dungeons', count: 14, desc: '14 dungeon entries, track each run' },
-        { name: 'Sanctuary', count: 1, desc: '10-player weekly raid' },
-        { name: 'Ascension Trials', count: 3, desc: 'Stigma Shards + Daevanion Ariel rewards' },
-        { name: 'Nightmares', count: 14, desc: '14 weekly Nightmare entries' },
-        { name: 'Command Mission / Weekly Contracts', count: 12, desc: '12 missions per week' },
-        { name: 'Abyss Commands', count: 20, desc: '20 weekly Abyss Command entries' },
-        { name: 'Weekly Shop', count: 1, desc: 'Odyle Energy and other weekly shop rewards' },
-        { name: 'Shugo Festival', count: 14, desc: 'Weekly Shugo Festival entries' },
-        { name: 'Weekly Abyss Points Cap', count: 1, desc: 'Track whether the weekly Abyss Points cap has been reached' },
-        { name: 'Battlefield PvP', count: 3, desc: 'Weekly Battlefield PvP entries' },
-        { name: 'Abyss Corridors', count: 3, desc: 'Weekly Abyss Corridor entries' },
-        { name: 'Dimensional Invasion', count: 14, desc: 'Weekly Dimensional Invasion rewards' },
-      ]),
-      static: make([
-        { name: 'Regional Quests' }, { name: 'Sealed Dungeons' }, { name: 'Strongholds' },
-        { name: 'Empyrean Trace Collection' }, { name: 'Region Completion' }, { name: 'Abyss Progression' },
-        { name: 'Important One-Time Rewards' }, { name: 'Collection Objectives' },
-      ]),
-    };
+    const tasks = { daily: [], weekly: [], static: [] };
+    for (const e of CATALOG) if (!e.retired) tasks[e.kind].push(catalogTask(e));
+    return tasks;
+  }
+
+  // Brings a saved task list up to date with the official list (see CATALOG). Returns the names of
+  // activities that were added, so the person can be told. Runs whenever data is loaded.
+  const lower = s => String(s || '').trim().toLowerCase();
+  function applyCatalog(s) {
+    const added = [];
+    if (!s.catalog) {
+      // First run for data saved before the official list existed: link tasks to it by name, and
+      // treat everything in today's list as already offered (so deleted ones don't come back).
+      for (const e of CATALOG) {
+        const t = s.tasks[e.kind].find(x => !x.key && lower(x.name) === lower(e.name));
+        if (t) Object.assign(t, { key: e.key, rev: e.rev, official: officialOf(e) });
+      }
+      s.catalog = { seen: CATALOG.map(e => e.key) };
+      return added;
+    }
+    const seen = new Set(s.catalog.seen);
+    for (const e of CATALOG) {
+      const list = s.tasks[e.kind];
+      const t = list.find(x => x.key === e.key);
+      if (!seen.has(e.key)) {           // new in the official list
+        seen.add(e.key);
+        if (!t && !e.retired) { list.push(catalogTask(e)); added.push(e.name); }
+        continue;
+      }
+      if (!t || num(t.rev) >= e.rev) continue; // deleted by the person, or already up to date
+      const was = t.official || {};
+      const now = officialOf(e);
+      for (const f of CATALOG_FIELDS) {
+        if (was[f] === undefined || t[f] === was[f]) t[f] = now[f]; // only fields they haven't changed
+      }
+      if (e.retired) t.off = true;
+      t.official = now;
+      t.rev = e.rev;
+    }
+    s.catalog.seen = Array.from(seen);
+    return added;
+  }
+  let catalogAdded = []; // names added on this load, announced once the page is up
+
+  function announceCatalog() {
+    if (!catalogAdded.length) return;
+    const names = catalogAdded.slice(0, 3).join(', ') + (catalogAdded.length > 3 ? ` and ${catalogAdded.length - 3} more` : '');
+    toast(`New Aion 2 ${catalogAdded.length === 1 ? 'activity' : 'activities'} added: ${names}. Hide any you don't need in Settings → Tasks.`, { type: 'ok', timeout: 9000 });
+    catalogAdded = [];
   }
 
   function defaultScoring() {
@@ -149,6 +216,7 @@
       schema: SCHEMA,
       settings: { ...defaultSchedule(), scoring: defaultScoring() },
       tasks: defaultTasks(),
+      catalog: { seen: CATALOG.map(e => e.key) },
       characters: [],
       history: [],
       ui: { active: 'overview' },
@@ -232,6 +300,10 @@
       info: String((t && t.info) || '').slice(0, 400),
       mainOnly: !!(t && t.mainOnly),
       off: !!(t && t.off), // hidden in Settings: shown to no one and not counted until shown again
+      // Link to the official list (CATALOG); empty for activities people add themselves.
+      key: t && t.key ? String(t.key) : '',
+      rev: num(t && t.rev),
+      official: t && isObj(t.official) ? { ...t.official } : null,
     };
   }
 
@@ -292,7 +364,7 @@
     for (const c of characters) c.role = c === firstMain ? 'main' : 'alt';
     // Version 2 replaced the placeholder task lists with the Aion 2 activities.
     const useSavedTasks = oldSchema >= 2;
-    return {
+    const s = {
       schema: SCHEMA,
       settings: {
         tz: validTz(rs.tz) ? rs.tz : d.settings.tz,
@@ -325,7 +397,13 @@
         sideTab: SIDE_TABS.some(([k]) => isObj(raw.ui) && raw.ui.sideTab === k) ? raw.ui.sideTab : 'history',
       },
       updatedAt: num(raw.updatedAt, 0), // last change made by the person; decides which copy wins when syncing
+      // Which official activities this person has already been offered (see CATALOG).
+      catalog: !useSavedTasks ? d.catalog
+        : isObj(raw.catalog) && Array.isArray(raw.catalog.seen) ? { seen: raw.catalog.seen.map(String) } : null,
     };
+    const added = applyCatalog(s);
+    for (const name of added) if (!catalogAdded.includes(name)) catalogAdded.push(name);
+    return s;
   }
 
   function load() {
@@ -563,7 +641,6 @@
         <div class="top-actions">
           <button class="btn ghost news-btn" id="news-btn" data-action="open-news" title="Official AION 2 announcements" hidden>${icon('news')}<span>News</span><b class="news-badge" id="news-badge" hidden></b></button>
           <span id="account-slot" class="account-slot"></span>
-          <button class="btn ghost" data-action="open-notes" title="Your personal notes">${icon('note')}<span>Notes</span></button>
           <button class="btn ghost" data-action="open-history" title="Weekly history">${icon('history')}<span>History</span></button>
           <button class="btn ghost" data-action="open-settings" title="Tasks, resets and scoring">${icon('sliders')}<span>Settings</span></button>
         </div>
@@ -842,7 +919,8 @@
         ${side === 'history' ? `<article class="panel heat">${heatmapHTML(c)}</article>` : ''}
         ${side === 'calc' ? `<article class="panel" id="calc-panel">${calcHTML(c)}</article>` : ''}
         ${side === 'notes' ? `<article class="panel">
-          <header class="panel-head"><h3>Notes for ${esc(c.name)}</h3></header>
+          <header class="panel-head"><h3>Notes for ${esc(c.name)}</h3>
+            <button class="btn ghost xs" data-action="open-notes" title="See notes for every character and general notes">${icon('note')}All notes</button></header>
           <div class="notes-ui" data-scope="${esc(c.id)}">${notesUIHTML(c.id)}</div>
         </article>` : ''}
         ${side === 'stats' ? `<article class="panel">
@@ -1581,6 +1659,19 @@
         },
         'use-local-tz'() { tzText = USER_TZ; draft.settings.tz = USER_TZ; paint(); },
         'reset-scoring'() { draft.settings.scoring = defaultScoring(); paint(); },
+        'share-export'(b) {
+          const what = b.dataset.what;
+          openShareExport(what, what === 'tasks' ? shareableTasks(draft.tasks) : clone(draft.settings.scoring));
+        },
+        'share-import'(b) {
+          const what = b.dataset.what;
+          openShareImport(what, (data, mode) => {
+            if (what === 'tasks') draft.tasks = mergeTasks(draft.tasks, data, mode);
+            else draft.settings.scoring = normScoring(data);
+            paint();
+            toast(`${what === 'tasks' ? 'Lists' : 'Weights'} imported. Click Save changes to keep them.`, { type: 'ok', timeout: 6000 });
+          });
+        },
         export: exportData,
         import() { openImport(m); },
         clear() { openClearAll(); },
@@ -1695,7 +1786,11 @@
             ${KIND_LABEL[k]} <span class="seg-count">${draft.tasks[k].filter(t => !t.off).length}/${draft.tasks[k].length}</span></button>`).join('')}
         </div>
         ${editor(taskKind)}
-        <button type="button" class="btn ghost sm" data-m="default-tasks">${icon('refresh')}Restore Aion 2 activities</button>`;
+        <div class="btn-row">
+          <button type="button" class="btn ghost sm" data-m="share-export" data-what="tasks">${icon('upload')}Share my lists</button>
+          <button type="button" class="btn ghost sm" data-m="share-import" data-what="tasks">${icon('download')}Import lists</button>
+          <button type="button" class="btn ghost sm" data-m="default-tasks">${icon('refresh')}Restore Aion 2 activities</button>
+        </div>`;
     }
 
     function resetsPane() {
@@ -1757,7 +1852,11 @@
         <div class="form-grid cols-3">
           ${STAT_DEFS.map(d => field(d.label, `data-sc-s="${d.key}"`, sc.stats[d.key])).join('')}
         </div>
-        <button type="button" class="btn ghost sm" data-m="reset-scoring">${icon('refresh')}Restore default weights</button>`;
+        <div class="btn-row">
+          <button type="button" class="btn ghost sm" data-m="share-export" data-what="scoring">${icon('upload')}Share my weights</button>
+          <button type="button" class="btn ghost sm" data-m="share-import" data-what="scoring">${icon('download')}Import weights</button>
+          <button type="button" class="btn ghost sm" data-m="reset-scoring">${icon('refresh')}Restore default weights</button>
+        </div>`;
     }
 
     function dataPane() {
@@ -1855,6 +1954,143 @@
           a.remove();
           setTimeout(() => URL.revokeObjectURL(a.href), 2000);
           toast('Backup downloaded.', { type: 'ok' });
+        },
+      },
+    });
+  }
+
+  /* Sharing activity lists and scoring weights between people (Settings → Tasks / Scoring).
+     A share is JSON text: { app, share: 'tasks' | 'scoring', version, data }. */
+
+  const SHARE_LABEL = { tasks: 'activity lists', scoring: 'scoring weights' };
+
+  // Only the parts worth sharing: no ids or progress, which are personal.
+  function shareableTasks(tasks) {
+    const out = {};
+    for (const kind of KINDS) {
+      out[kind] = tasks[kind].map(t => {
+        const s = { name: t.name, count: t.count };
+        for (const f of ['desc', 'location', 'info']) if (t[f]) s[f] = t[f];
+        if (t.mainOnly) s.mainOnly = true;
+        if (t.off) s.off = true;
+        if (t.key) s.key = t.key;
+        return s;
+      });
+    }
+    return out;
+  }
+
+  // Applies someone's shared lists. Activities that match one of yours (same official activity, or same
+  // name in the same list) keep your existing one's id, so your progress on it carries over.
+  function mergeTasks(existing, incoming, mode) {
+    const out = {};
+    for (const kind of KINDS) {
+      const mine = existing[kind];
+      const theirs = (isObj(incoming) && Array.isArray(incoming[kind]) ? incoming[kind] : []).filter(isObj).slice(0, 60);
+      const used = new Set();
+      const mapped = theirs.map(t => {
+        const m = mine.find(x => !used.has(x.id) && ((t.key && x.key === t.key) || lower(x.name) === lower(t.name)));
+        const k = t.key || (m && m.key);
+        const entry = k && CATALOG.find(e => e.key === k);
+        let id = m ? m.id : (entry ? 'cat-' + entry.key : uid());
+        if (used.has(id) || (!m && mine.some(x => x.id === id))) id = uid();
+        used.add(id);
+        // Linked to the official list at its current version, so their values count as deliberate edits.
+        return normTask({ ...t, id, key: entry ? entry.key : '', rev: entry ? entry.rev : 0, official: entry ? officialOf(entry) : null });
+      });
+      out[kind] = mode === 'merge'
+        ? mine.concat(mapped.filter(t => !mine.some(x => x.id === t.id)))
+        : mapped;
+    }
+    return out;
+  }
+
+  function normScoring(sc) {
+    const d = defaultScoring();
+    sc = isObj(sc) ? sc : {};
+    const nums = (src, base) => Object.fromEntries(Object.keys(base).map(k => [k, num(isObj(src) ? src[k] : undefined, base[k])]));
+    return {
+      ilvlWeight: num(sc.ilvlWeight, d.ilvlWeight),
+      enchantWeight: num(sc.enchantWeight, d.enchantWeight),
+      rarity: nums(sc.rarity, d.rarity),
+      stats: nums(sc.stats, d.stats),
+    };
+  }
+
+  function openShareExport(what, data) {
+    const json = JSON.stringify({ app: 'aion2-progress-tracker', share: what, version: 1, data }, null, 2);
+    const canDownload = SERVED_BY_APP_SERVER || location.protocol === 'file:';
+    const m = openModal({
+      title: `Share my ${SHARE_LABEL[what]}`,
+      body: `<p class="fine">Send this to a friend (Discord, email, a text file). They open Settings &rarr; ${what === 'tasks' ? 'Tasks' : 'Scoring'} &rarr; <b>Import</b> and paste it.
+          ${what === 'tasks' ? 'Only the lists are shared, never your characters or progress.' : ''}</p>
+        <textarea id="share-text" class="code-box" rows="12" readonly spellcheck="false">${esc(json)}</textarea>`,
+      footer: `${canDownload ? `<button class="btn ghost" data-m="download">${icon('download')}Download file</button>` : ''}
+               <button class="btn primary" data-m="copy" autofocus>Copy to clipboard</button>`,
+      actions: {
+        async copy() {
+          const ta = $('#share-text', m);
+          ta.focus();
+          ta.select();
+          try { await navigator.clipboard.writeText(json); toast('Copied. Paste it to your friend.', { type: 'ok' }); }
+          catch (e) {
+            try { document.execCommand('copy'); toast('Copied. Paste it to your friend.', { type: 'ok' }); }
+            catch (e2) { toast('Copy was blocked. The text is selected; press Ctrl+C to copy it.', { type: 'bad', timeout: 6000 }); }
+          }
+        },
+        download() {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+          a.download = `aion2-${what === 'tasks' ? 'activity-lists' : 'scoring-weights'}.json`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+        },
+      },
+    });
+  }
+
+  function openShareImport(what, onApply) {
+    const m = openModal({
+      title: `Import ${SHARE_LABEL[what]}`,
+      body: `<p class="fine">Paste what a friend shared with you, or choose their file. Nothing changes until you click <b>Save changes</b> in Settings.</p>
+        <textarea id="share-in" class="code-box" rows="10" spellcheck="false" placeholder='{ "app": "aion2-progress-tracker", "share": "${what}", ... }' autofocus></textarea>
+        <div class="btn-row">
+          <button type="button" class="btn ghost sm" data-m="pick">${icon('upload')}Choose file…</button>
+          <input type="file" id="share-file" accept="application/json,.json,.txt" hidden>
+        </div>
+        ${what === 'tasks' ? `<fieldset class="share-mode">
+          <legend class="fine">How to import</legend>
+          <label class="check-row"><input type="radio" name="share-mode" value="merge" checked> Add only activities I don't have yet</label>
+          <label class="check-row"><input type="radio" name="share-mode" value="replace"> Replace my lists with theirs (progress on matching activities is kept)</label>
+        </fieldset>` : ''}`,
+      footer: `<button class="btn ghost" data-m="cancel">Cancel</button>
+               <button class="btn primary" data-m="go">Import</button>`,
+      onChange(e) {
+        const file = e.target.id === 'share-file' && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => { $('#share-in', m).value = String(reader.result); };
+        reader.readAsText(file);
+      },
+      actions: {
+        pick() { $('#share-file', m).click(); },
+        go() {
+          let parsed;
+          try { parsed = JSON.parse($('#share-in', m).value.trim()); } catch (e) { parsed = null; }
+          let data = null;
+          if (isObj(parsed) && parsed.share === what && isObj(parsed.data)) data = parsed.data;
+          // A full backup (Settings → Data → Export) works too.
+          else if (isObj(parsed) && isObj(parsed.data) && what === 'tasks' && isObj(parsed.data.tasks)) data = parsed.data.tasks;
+          else if (isObj(parsed) && isObj(parsed.data) && what === 'scoring' && isObj(parsed.data.settings)) data = parsed.data.settings.scoring;
+          if (!data) {
+            toast(`That isn't a shared ${SHARE_LABEL[what].replace(/s$/, '')} list. Ask your friend to use "Share my ${what === 'tasks' ? 'lists' : 'weights'}".`, { type: 'bad', timeout: 7000 });
+            return;
+          }
+          const modeInput = $('input[name="share-mode"]:checked', m);
+          closeModal(m);
+          onApply(data, modeInput ? modeInput.value : 'replace');
         },
       },
     });
@@ -2581,6 +2817,7 @@
     processResets();
     save({ sync: false });
     render();
+    announceCatalog();
   }
 
   function applyPendingRemote() {
@@ -2991,7 +3228,7 @@
 
   function openNewsList() {
     const unreadIds = new Set(unreadNews().map(n => n.id));
-    const images = news.source === 'server';
+    const images = news.source !== 'cloud';
     const items = news.items.slice().sort((a, b) => b.postedAt - a.postedAt);
     const m = openModal({
       title: 'AION 2 news',
@@ -3023,8 +3260,11 @@
   }
 
   async function loadArticle(item) {
-    if (news.source === 'server') {
-      const r = await fetch(`/api/news/${encodeURIComponent(item.id)}`, { cache: 'no-store' });
+    if (news.source === 'server' || news.source === 'static') {
+      const url = news.source === 'server'
+        ? `/api/news/${encodeURIComponent(item.id)}`
+        : `news/${encodeURIComponent(item.id)}.json?t=${num(news.updatedAt)}`;
+      const r = await fetch(url, { cache: 'no-store' });
       if (!r.ok) throw new Error('unavailable');
       return r.json();
     }
@@ -3036,7 +3276,7 @@
   }
 
   function openArticle(item) {
-    const images = news.source === 'server';
+    const images = news.source !== 'cloud'; // claude.ai pages can't load pictures from other sites
     const m = openModal({
       title: item.title,
       size: 'wide',
@@ -3061,10 +3301,12 @@
     });
   }
 
-  // Returns false when this host has no news relay (e.g. GitHub Pages), so polling can stop.
-  async function loadServerNews() {
+  // Local server: live relay at /api/news. GitHub Pages: news/feed.json, saved hourly by the deploy
+  // workflow (tools/fetch_news.py). Returns false when this host has neither, so polling can stop.
+  async function loadHostedNews() {
+    const url = news.source === 'server' ? '/api/news' : `news/feed.json?t=${Date.now()}`;
     try {
-      const r = await fetch('/api/news', { cache: 'no-store' });
+      const r = await fetch(url, { cache: 'no-store' });
       if (r.status === 404) return false;
       if (!r.ok) return true;
       const d = await r.json();
@@ -3079,8 +3321,11 @@
   async function startNews() {
     if (SERVED_BY_APP_SERVER) {
       news.source = 'server';
-      if (!(await loadServerNews())) return;
-      setInterval(() => { if (!document.hidden) loadServerNews(); }, 15 * 60e3);
+      if (!(await loadHostedNews())) {
+        news.source = 'static';
+        if (!(await loadHostedNews())) { news.source = null; return; }
+      }
+      setInterval(() => { if (!document.hidden) loadHostedNews(); }, 15 * 60e3);
       return;
     }
     if (!window.claude || typeof window.claude.use !== 'function') return;
@@ -3106,6 +3351,7 @@
   render();
   if (first.weekly && state.history.length) toast('New week started — last week was archived to History.', { type: 'ok', timeout: 6000 });
   else if (first.daily) toast('Daily reset — checklists are fresh.', { type: 'ok' });
+  announceCatalog();
   try {
     if (sessionStorage.getItem('aion2-updated')) {
       sessionStorage.removeItem('aion2-updated');

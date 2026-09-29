@@ -1,11 +1,14 @@
-# Publishes public/ to GitHub Pages on every push to main.
+# Publishes public/ to GitHub Pages on every push to main, and every hour to refresh the news.
 # Each deploy stamps a build id into index.html (so browsers fetch fresh CSS/JS)
-# and into version.json (so open pages notice the new version and reload).
+# and into version.json (so open pages notice the new version and reload),
+# and saves the official AION 2 announcements into public/news/.
 name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: '17 * * * *'   # hourly, for fresh news (GitHub may delay scheduled runs a little)
   workflow_dispatch:
 
 permissions:
@@ -25,6 +28,10 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Save official news
+        continue-on-error: true
+        run: python3 tools/fetch_news.py
 
       - name: Stamp build id
         run: |

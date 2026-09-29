@@ -53,12 +53,28 @@ local files change, and it offers backups through copy and paste instead of file
   to save. With view-only access their data stays in their own browser.
 - **Local app (`start.bat`):** data is saved only in that browser's `localStorage`.
 
+### Updating everyone's activity lists
+
+The official Aion 2 activities are the `CATALOG` list near the top of `public/js/app.js`. Each has a
+permanent `key` and a `rev` number. Everyone's saved lists are brought up to date the next time they
+open the site:
+
+- **New activity:** add an entry with a new key. It is added to everyone's list, with a notice.
+- **Changed activity:** edit it and raise `rev` (1 → 2). Each field updates for everyone who hasn't
+  changed that field themselves.
+- **Removed from the game:** add `retired: true` and raise `rev`. It's hidden for everyone; past history stays.
+
+People's own activities, renames, hidden or deleted activities, and progress are never overwritten.
+
 ### Official news
 
 - **Local app:** the server relays the official announcements live
   (`/api/news`, `/api/news/<id>` from the AION 2 community API, English notice board) and the
   page refreshes them every 15 minutes.
-- **Shared link:** claude.ai pages can't load other websites, so the news there is a copy kept in
+- **GitHub Pages site:** the deploy workflow runs `tools/fetch_news.py` on every push and every hour,
+  saving the announcements as `public/news/feed.json` and `public/news/<id>.json`, which the page reads.
+  (GitHub pauses scheduled runs if the repository has had no activity for 60 days; any push restarts them.)
+- **claude.ai link:** claude.ai pages can't load other websites, so the news there is a copy kept in
   the page's shared storage (`news/feed` and `news/feed/articles/<id>`). Everyone can read it; only
   the owner can change it. It is refreshed by asking Claude to update the news. Pictures inside
   articles only show in the local app.
