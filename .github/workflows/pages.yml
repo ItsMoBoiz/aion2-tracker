@@ -1,0 +1,42 @@
+# Publishes public/ to GitHub Pages on every push to main.
+# Each deploy stamps a build id into index.html (so browsers fetch fresh CSS/JS)
+# and into version.json (so open pages notice the new version and reload).
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stamp build id
+        run: |
+          BUILD="${GITHUB_SHA::12}"
+          sed -i "s/__BUILD__/${BUILD}/g" public/index.html
+          printf '{"build":"%s"}\n' "$BUILD" > public/version.json
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

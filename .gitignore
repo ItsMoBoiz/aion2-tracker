@@ -1,0 +1,12 @@
+# Generated single-file bundle for the claude.ai link (rebuild with tools/build-single-file.ps1)
+dist/
+
+# Not part of the app: a stylesheet from another project, kept only as a design reference
+public/css/it-operations-dashboard.css
+
+# Python / OS clutter
+__pycache__/
+*.pyc
+Thumbs.db
+Desktop.ini
+.DS_Store
