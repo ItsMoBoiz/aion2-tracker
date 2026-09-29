@@ -562,6 +562,7 @@
         </div>
         <div class="top-actions">
           <button class="btn ghost news-btn" id="news-btn" data-action="open-news" title="Official AION 2 announcements" hidden>${icon('news')}<span>News</span><b class="news-badge" id="news-badge" hidden></b></button>
+          <span id="account-slot" class="account-slot"></span>
           <button class="btn ghost" data-action="open-notes" title="Your personal notes">${icon('note')}<span>Notes</span></button>
           <button class="btn ghost" data-action="open-history" title="Weekly history">${icon('history')}<span>History</span></button>
           <button class="btn ghost" data-action="open-settings" title="Tasks, resets and scoring">${icon('sliders')}<span>Settings</span></button>
@@ -2227,6 +2228,8 @@
     'open-settings'() { openSettings(); },
     'open-history'() { openHistory(); },
     'open-news'() { openNewsList(); },
+    'sign-in'() { signIn(); },
+    account() { openAccount(); },
     'open-notes'() {
       openModal({
         title: 'Your notes',
@@ -2460,9 +2463,10 @@
      so the page opens instantly and still works offline. Newest change wins. */
 
   const LINK_KEY = 'aion2-sync-linked'; // which account this browser's copy was last synced with
-  // "Clear all data" is only offered to the page's owner. The local app (no claude.ai viewer) is the
-  // owner's own copy, so it keeps the option; on the hosted page it waits for the owner check below.
-  let canClearAll = !(window.claude && typeof window.claude.use === 'function');
+  // "Clear all data" is only offered to the owner: always on the local app (the owner's own PC),
+  // on claude.ai to the page's owner, and on the public site to the admin account in firebase-config.js.
+  const IS_LOCAL = location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname);
+  let canClearAll = IS_LOCAL;
   const cloud = {
     col: null,            // CollectionReference for data/users/<id>
     uid: null,
@@ -2545,13 +2549,17 @@
       cloud.retried = false;
       setSyncStatus('synced');
     } catch (e) {
+      // Error codes: claude.ai page storage uses snake_case, Firestore uses kebab-case.
       const code = e && e.code;
       if (code === 'invalid_argument' || code === 'not_granted' || code === 'revoked' ||
-          code === 'capability_disabled' || code === 'capability_removed') {
+          code === 'capability_disabled' || code === 'capability_removed' ||
+          code === 'permission-denied' || code === 'unauthenticated') {
         cloud.disabled = true;
         setSyncStatus('readonly');
-      } else if (code === 'quota_exceeded') {
+      } else if (code === 'quota_exceeded' || code === 'resource-exhausted') {
         setSyncStatus('error', 'Cloud storage is full. Delete old weeks in History to free space.');
+      } else if (code === 'invalid-argument') {
+        setSyncStatus('error', 'Your data is too large to sync. Delete old weeks in History or some notes.');
       } else if (!cloud.retried) {
         cloud.retried = true;
         setSyncStatus('error');
@@ -2695,19 +2703,150 @@
     canClearAll = !!(user && await user.isOwner());
     const uid = db && user ? await user.id() : null;
     if (!uid) { setSyncStatus('local'); return; }
-    cloud.uid = uid;
+    let col;
     try {
-      cloud.col = db.collection('data/users/' + uid);
+      col = db.collection('data/users/' + uid);
     } catch (e) {
       setSyncStatus('local');
       return;
     }
-    cloud.col.onSnapshot(onRemoteSnapshot, () => {
+    connectCloud(col, uid);
+  }
+
+  // Starts syncing with one person's private collection. Works with the claude.ai page storage and
+  // with Firestore alike: both hold a "tracker" document plus one "week-<start>" document per week.
+  function connectCloud(col, uid) {
+    disconnectCloud();
+    Object.assign(cloud, { col, uid, ready: false, disabled: false, remoteWeeks: new Map(), pending: null, retried: false });
+    setSyncStatus('connecting');
+    cloud.unsub = col.onSnapshot(onRemoteSnapshot, () => {
       cloud.disabled = true;
       setSyncStatus('error', 'Lost connection to your cloud save. Reload the page to reconnect.');
     });
-    // Upload a pending change straight away when the page is hidden or closed.
-    document.addEventListener('visibilitychange', () => { if (document.hidden && cloud.timer) pushNow(); });
+  }
+
+  // Stops syncing (e.g. after signing out). This browser keeps its copy of the data.
+  function disconnectCloud() {
+    if (cloud.unsub) { try { cloud.unsub(); } catch (e) { /* already closed */ } }
+    clearTimeout(cloud.timer);
+    Object.assign(cloud, { col: null, uid: null, ready: false, disabled: false, timer: 0, unsub: null, pending: null });
+  }
+
+  // Upload a pending change straight away when the page is hidden or closed.
+  document.addEventListener('visibilitychange', () => { if (document.hidden && cloud.timer) pushNow(); });
+
+  /* ---------- 10d. Google sign-in with Firebase (public website) ----------
+     When js/firebase-config.js has an apiKey, people can sign in with Google and their data syncs
+     through Firestore at users/<uid>/docs/{tracker, week-<start>}, the same layout the sync engine
+     above uses on claude.ai. Security rules in Firestore only let each person read and write their own. */
+
+  // Served from this site rather than Google's CDN: Edge's tracking prevention blocks storage for
+  // scripts from other sites, which stops Firebase sign-in from starting.
+  const FIREBASE_SDK = 'vendor/firebase-10.12.2/';
+  const fb = { auth: null, db: null, user: null, ready: false };
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = () => reject(new Error('Could not load ' + src));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function sha256Hex(text) {
+    const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  function renderAccount() {
+    const slot = $('#account-slot');
+    if (!slot) return;
+    if (!fb.ready) { slot.innerHTML = ''; return; }
+    const u = fb.user;
+    slot.innerHTML = u
+      ? `<button class="btn ghost account-btn" data-action="account" title="Signed in as ${esc(u.email || u.displayName || '')}">
+          ${u.photoURL ? `<img class="account-pic" src="${esc(u.photoURL)}" alt="" referrerpolicy="no-referrer">` : `<span class="account-pic">${esc(initials(u.displayName || u.email || '?'))}</span>`}
+          <span>${esc((u.displayName || u.email || 'Account').split(' ')[0])}</span></button>`
+      : `<button class="btn primary signin-btn" data-action="sign-in" title="Sign in to sync your tracker across browsers and devices">
+          ${GOOGLE_G}<span>Sign in to sync</span></button>`;
+  }
+
+  const GOOGLE_G = `<svg class="ico" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>`;
+
+  async function signIn() {
+    if (!fb.auth) return;
+    const provider = new window.firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    try {
+      await fb.auth.signInWithPopup(provider);
+    } catch (e) {
+      const code = e && e.code;
+      if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+        await fb.auth.signInWithRedirect(provider); // phones and strict pop-up blockers
+      } else if (code === 'auth/unauthorized-domain') {
+        toast('Sign-in isn\'t enabled for this web address yet. Add it under Authentication → Settings → Authorized domains in Firebase.', { type: 'bad', timeout: 10000 });
+      } else if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
+        toast('Sign-in didn\'t work. Please try again.', { type: 'bad' });
+      }
+    }
+  }
+
+  function openAccount() {
+    const u = fb.user;
+    if (!u) return;
+    const m = openModal({
+      title: 'Your account',
+      size: 'sm',
+      body: `<div class="account-card">
+          ${u.photoURL ? `<img class="account-pic lg" src="${esc(u.photoURL)}" alt="" referrerpolicy="no-referrer">` : ''}
+          <div><b>${esc(u.displayName || 'Signed in')}</b><br><span class="fine">${esc(u.email || '')}</span></div>
+        </div>
+        <p class="fine">Your characters, progress, history and notes sync to this Google account. Sign in with it in any browser to pick up where you left off.</p>
+        <p class="fine">Signing out keeps a copy in this browser but stops syncing it.</p>`,
+      footer: `<button class="btn ghost" data-m="out">Sign out</button>
+               <button class="btn primary" data-m="close">Done</button>`,
+      actions: {
+        async out() {
+          closeModal(m);
+          await fb.auth.signOut();
+          toast('Signed out. This browser keeps its copy; sign in again to sync.');
+        },
+      },
+    });
+  }
+
+  async function startFirebase() {
+    const cfg = window.AION2_FIREBASE;
+    if (!cfg || !cfg.apiKey || !cfg.projectId) return; // sign-in not set up on this copy
+    if (window.claude && typeof window.claude.use === 'function') return; // claude.ai has its own sync
+    try {
+      await loadScript(FIREBASE_SDK + 'firebase-app-compat.js');
+      await loadScript(FIREBASE_SDK + 'firebase-auth-compat.js');
+      await loadScript(FIREBASE_SDK + 'firebase-firestore-compat.js');
+    } catch (e) {
+      setSyncStatus('local', 'Saved on this device only (sign-in couldn\'t load)');
+      return;
+    }
+    const app = window.firebase.initializeApp({ apiKey: cfg.apiKey, authDomain: cfg.authDomain, projectId: cfg.projectId, appId: cfg.appId });
+    fb.auth = app.auth();
+    fb.db = app.firestore();
+    fb.ready = true;
+    const admins = Array.isArray(cfg.adminEmailHashes) ? cfg.adminEmailHashes : [];
+    fb.auth.getRedirectResult().catch(() => { /* handled by onAuthStateChanged */ });
+    fb.auth.onAuthStateChanged(async user => {
+      fb.user = user;
+      renderAccount();
+      if (user) {
+        canClearAll = IS_LOCAL || (!!user.email && admins.includes(await sha256Hex(user.email.trim().toLowerCase())));
+        connectCloud(fb.db.collection('users').doc(user.uid).collection('docs'), user.uid);
+      } else {
+        canClearAll = IS_LOCAL;
+        disconnectCloud();
+        setSyncStatus('local', 'Saved on this device only · sign in to sync');
+      }
+    });
   }
 
   /* ---------- 10c. Official AION 2 news ----------
@@ -2980,5 +3119,6 @@
 
   startLiveUpdates();
   startCloudSync();
+  startFirebase();
   startNews();
 })();

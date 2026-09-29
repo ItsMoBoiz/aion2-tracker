@@ -929,6 +929,22 @@ optgroup option { color: var(--ink); }
 .wc-days { display: flex; flex-direction: column; gap: 6px; }
 .wk-foot { display: flex; justify-content: flex-end; padding: 0 14px 12px; }
 
+/* ---------- 7. Account (Google sign-in on the public site) ---------- */
+.account-slot { display: contents; }
+.signin-btn {
+  background: #ffffff; color: #1f1f1f; border: 1px solid #dadce0; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+.signin-btn:hover:not(:disabled) { background: #f1f3f4; }
+.signin-btn .ico { width: 18px; height: 18px; }
+.account-btn { padding-left: 6px; }
+.account-pic {
+  display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
+  background: var(--soft); color: var(--ink); font-size: 0.7rem; font-weight: 900;
+  box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.6);
+}
+.account-pic.lg { width: 52px; height: 52px; }
+.account-card { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+
 /* ---------- 7a. Personal notes ---------- */
 .notes-ui { display: flex; flex-direction: column; gap: 12px; }
 .note-filters { flex-wrap: wrap; margin-bottom: 0; }
@@ -1062,7 +1078,7 @@ optgroup option { color: var(--ink); }
 @media (max-width: 720px) {
   .topbar { grid-template-columns: 1fr; }
   .top-actions { justify-content: flex-start; }
-  .top-actions .btn.ghost span { display: none; }
+  .top-actions .btn.ghost span:not(.account-pic) { display: none; }
   .top-actions .btn.ghost { padding: 0 11px; }
   .resets { flex-wrap: nowrap; }
   .reset-chip { flex: 1 1 0; min-width: 0; grid-template-columns: 1fr; }
