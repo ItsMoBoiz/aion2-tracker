@@ -53,7 +53,12 @@
   ];
   // Collections (per character): counters with an optional target.
   const COLLECTIONS = [
-    { key: 'feathers', name: 'Feathers', icon: 'feather', color: '#fbbf24', goal: 190, hint: 'Deliver about 190 for amulet materials, then collect the rest' },
+    { key: 'collectibles', name: 'Collectibles', icon: 'sparkle', color: '#fbbf24', parts: [
+      // Keeps the old 'feathers' key so counts entered before the rename carry over.
+      { key: 'feathers', name: 'Empyrean Trace', icon: 'feather', goal: 560, hint: 'Deliver about 190 early for amulet materials, then collect the rest' },
+      { key: 'hiddencubes', name: 'Hidden Cubes', icon: 'grid', goal: 143 },
+      { key: 'worldbosses', name: 'World Bosses', icon: 'sword', goal: 26 },
+    ] },
     // A group: its total is the sum of its parts.
     { key: 'pantheons', name: 'Pantheons', icon: 'trophy', color: '#f5c96a', parts: [
       { key: 'pantheon-artworks', name: 'Artworks', icon: 'image', goal: 122 },
@@ -61,12 +66,10 @@
       { key: 'pantheon-statues', name: 'Statues', icon: 'gem', goal: 63 },
     ] },
     { key: 'pets', name: 'Pets', icon: 'paw', color: '#34d399', goal: 227 },
-    { key: 'mounts', name: 'Mounts', icon: 'flag', color: '#60a5fa' },
     { key: 'wings', name: 'Wings', icon: 'feather', color: '#a78bfa', goal: 116 },
     { key: 'theostones', name: 'Theostones', icon: 'gem', color: '#fb923c', goal: 153 },
     { key: 'genus', name: 'Pet Genius', icon: 'book', color: '#c084fc', unit: 'level' },
     { key: 'arcana', name: 'Arcana Cards', icon: 'sparkle', color: '#f472b6' },
-    { key: 'clashrunes', name: 'Clash Runes', icon: 'gem', color: '#f05252' },
   ];
   const COUNTER_MAX = 999999999;
   // Personal notes. Limits keep the synced save well inside the storage's document size.
@@ -789,7 +792,11 @@
       growth: (Array.isArray(c.growth) ? c.growth : []).filter(p => isObj(p) && num(p.t))
         .map(p => ({ t: num(p.t), cp: Math.round(num(p.cp)), gs: Math.round(num(p.gs)) })).slice(-400),
       wallet: normCounters(c.wallet),
-      collect: normCounters(c.collect),
+      collect: (() => {
+        const x = normCounters(c.collect);
+        if (x.goals.feathers === 190) delete x.goals.feathers; // old Feathers target; Empyrean Trace now defaults to 560
+        return x;
+      })(),
     };
   }
 
@@ -1142,9 +1149,13 @@
       </button>`);
     }
     tabs.push(`<button class="tab tab-add" data-action="add-char" aria-label="Add character">${icon('plus')}</button>`);
-    // Interactive map link at the right end of the tabs row.
-    tabs.push(`<a class="map-link" href="https://interactivemap.app/aion2/maps/verteron" target="_blank" rel="noopener noreferrer"
-      title="Interactive map (opens in a new tab)" aria-label="Open the AION 2 interactive map in a new tab">${icon('map')}</a>`);
+    // Outside tools at the right end of the tabs row: build planner and interactive map.
+    tabs.push(`<span class="tab-links">
+      <a class="map-link" href="https://gamers4.life/aion-2/database/en/build-calculator/" target="_blank" rel="noopener noreferrer"
+        title="Build planner (opens in a new tab)" aria-label="Open the AION 2 build planner in a new tab">${icon('sliders')}</a>
+      <a class="map-link" href="https://interactivemap.app/aion2/maps/verteron" target="_blank" rel="noopener noreferrer"
+        title="Interactive map (opens in a new tab)" aria-label="Open the AION 2 interactive map in a new tab">${icon('map')}</a>
+    </span>`);
     $('#tabs').innerHTML = tabs.join('');
   }
 
@@ -2113,6 +2124,7 @@
   const counterDefs = kind => (kind === 'wallet' ? CURRENCIES : COLLECTIONS);
   // Every editable counter, with group parts listed on their own (they take the group's colour).
   const counterLeaves = kind => counterDefs(kind).flatMap(d => (d.parts ? d.parts.map(p => ({ ...p, color: d.color })) : [d]));
+  const groupOpen = new Set(); // open counter groups ("kind:key"), kept while the page is open
   // A saved target wins; counters with a built-in target (e.g. Pets 227) fall back to it when none is saved.
   function counterGoal(c, kind, d) {
     const g = num(c[kind].goals[d.key]);
@@ -2122,19 +2134,19 @@
   function counterHTML(c, kind) {
     const wallet = kind === 'wallet';
     const ds = `data-char="${esc(c.id)}" data-kind="${kind}"`;
-    const row = (d, v, goal, tools, cls = '') => {
+    const inner = (d, v, goal) => {
       const pct = goal ? Math.min(100, Math.round((v / goal) * 100)) : 0;
-      return `<li class="counter ${cls} ${goal && v >= goal ? 'is-done' : ''}" style="--ic:${d.color}">
-        <span class="ct-ico">${icon(d.icon)}</span>
-        <div class="ct-body">
-          <div class="ct-top"><span class="ct-name">${esc(d.name)}</span>
-            <b class="ct-val">${d.unit === 'level' ? 'Lv ' : ''}${fmtInt(v)}${goal ? `<i> / ${fmtInt(goal)}</i>` : ''}</b></div>
-          ${goal ? `<div class="ct-bar"><i style="width:${pct}%"></i></div>` : ''}
+      return `<span class="ct-ico">${icon(d.icon)}</span>
+        <span class="ct-body">
+          <span class="ct-top"><span class="ct-name">${esc(d.name)}</span>
+            <b class="ct-val">${d.unit === 'level' ? 'Lv ' : ''}${fmtInt(v)}${goal ? `<i> / ${fmtInt(goal)}</i>` : ''}</b></span>
+          ${goal ? `<span class="ct-bar"><i style="width:${pct}%"></i></span>` : ''}
           ${d.hint && goal ? `<small class="ct-hint">${esc(d.hint)}</small>` : ''}
-        </div>
-        ${tools ? `<span class="ct-tools">${tools}</span>` : ''}
-      </li>`;
+        </span>`;
     };
+    const row = (d, v, goal, tools, cls = '') => `<li class="counter ${cls} ${goal && v >= goal ? 'is-done' : ''}" style="--ic:${d.color}">
+        ${inner(d, v, goal)}${tools ? `<span class="ct-tools">${tools}</span>` : ''}
+      </li>`;
     const tools = d => `${wallet ? '' : `<button class="icon-btn xs" data-action="counter-step" ${ds} data-value="${d.key}" title="Add one" aria-label="Add one ${esc(d.name)}">${icon('plus')}</button>`}
       <button class="icon-btn xs" data-action="edit-counter" ${ds} data-value="${d.key}" title="Edit ${esc(d.name)}" aria-label="Edit ${esc(d.name)}">${icon('edit')}</button>`;
     return `<header class="panel-head"><h3>${wallet ? 'Currency' : 'Collections'}</h3>
@@ -2142,11 +2154,15 @@
       <ul class="counters">
         ${counterDefs(kind).map(d => {
           if (!d.parts) return row(d, num(c[kind].amounts[d.key]), counterGoal(c, kind, d), tools(d));
-          // Group: the total of its parts, then each part indented underneath.
+          // Group: a button showing the total of its parts; click it to show or hide the parts underneath.
           const parts = d.parts.map(p => ({ ...p, color: d.color, v: num(c[kind].amounts[p.key]), goal: counterGoal(c, kind, p) }));
           const total = parts.reduce((n, p) => n + p.v, 0), goal = parts.reduce((n, p) => n + p.goal, 0);
-          return `${row(d, total, goal, '', 'is-group')}
-            <li class="ct-parts"><ul class="counters">${parts.map(p => row(p, p.v, p.goal, tools(p), 'is-part')).join('')}</ul></li>`;
+          const open = groupOpen.has(`${kind}:${d.key}`);
+          return `<li class="counter is-group ${open ? 'is-open' : ''} ${goal && total >= goal ? 'is-done' : ''}" style="--ic:${d.color}">
+              <button class="ct-group-btn" data-action="counter-group" ${ds} data-value="${d.key}" aria-expanded="${open}"
+                title="${open ? 'Hide' : 'Show'} ${esc(d.name)}">${inner(d, total, goal)}<span class="ct-chev">${icon('down')}</span></button>
+            </li>
+            ${open ? `<li class="ct-parts"><ul class="counters">${parts.map(p => row(p, p.v, p.goal, tools(p), 'is-part')).join('')}</ul></li>` : ''}`;
         }).join('')}
       </ul>`;
   }
@@ -4322,6 +4338,11 @@
     'growth-series'(el) { growthSeries = el.dataset.value === 'gs' ? 'gs' : 'cp'; rerender(el); },
     'growth-range'(el) { growthRange = num(el.dataset.value); rerender(el); },
     'edit-counter'(el) { const c = getChar(el.dataset.char); if (c) openCounterModal(c, el.dataset.kind, el.dataset.value); },
+    'counter-group'(el) {
+      const key = `${el.dataset.kind}:${el.dataset.value}`;
+      if (groupOpen.has(key)) groupOpen.delete(key); else groupOpen.add(key);
+      rerender(el);
+    },
     'counter-step'(el) {
       const c = getChar(el.dataset.char);
       const kind = el.dataset.kind, key = el.dataset.value;

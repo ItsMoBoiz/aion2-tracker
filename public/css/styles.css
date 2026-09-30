@@ -248,8 +248,9 @@ optgroup option { color: var(--ink); }
 #sync-status[hidden] { display: none !important; }
 /* Interactive map link: its own row under the header buttons, right-aligned */
 /* Interactive map link: a round map button at the right end of the character tabs row */
+.tab-links { flex: none; align-self: center; margin-left: auto; display: inline-flex; gap: 8px; }
 .map-link {
-  flex: none; align-self: center; margin-left: auto;
+  flex: none;
   display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; text-decoration: none; color: #2dd4bf;
   background: rgba(45, 212, 191, 0.08); border: 1px solid rgba(45, 212, 191, 0.4);
   transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
@@ -2322,14 +2323,22 @@ optgroup option { color: var(--ink); }
 .ct-name { font-size: 0.86rem; font-weight: 700; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ct-val { font-size: 0.95rem; font-weight: 900; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ct-val i { font-style: normal; color: var(--muted); font-size: 0.78rem; font-weight: 700; }
-.ct-bar { height: 5px; border-radius: 999px; background: var(--well); overflow: hidden; }
+.ct-bar { display: block; height: 5px; border-radius: 999px; background: var(--well); overflow: hidden; }
 .ct-bar i { display: block; height: 100%; border-radius: inherit; background: var(--ic); }
 .counter.is-done .ct-bar i { background: var(--ok); }
 .counter.is-done .ct-val { color: var(--ok); }
 .ct-hint { font-size: 0.72rem; color: var(--faint); line-height: 1.35; }
 .ct-tools { flex: none; display: inline-flex; gap: 2px; }
 /* Group counter (e.g. Pantheons) with its parts indented underneath */
-.counter.is-group { border-color: color-mix(in srgb, var(--ic) 25%, transparent); background: color-mix(in srgb, var(--ic) 6%, transparent); }
+.counter.is-group { padding: 0; border-color: color-mix(in srgb, var(--ic) 25%, transparent); background: color-mix(in srgb, var(--ic) 6%, transparent); }
+.counter.is-group:hover { border-color: color-mix(in srgb, var(--ic) 50%, transparent); }
+.ct-group-btn {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 9px 10px; border: 0; border-radius: inherit;
+  background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.ct-chev { flex: none; display: grid; place-items: center; width: 28px; height: 28px; color: var(--muted); transition: transform 0.2s; }
+.ct-chev .ico { width: 16px; height: 16px; }
+.counter.is-group.is-open .ct-chev { transform: rotate(180deg); color: var(--ic); }
 .ct-parts { list-style: none; margin: -2px 0 2px 20px; padding-left: 10px; border-left: 2px solid rgba(var(--tint), 0.08); }
 .counter.is-part { padding: 6px 8px; }
 .counter.is-part .ct-ico { width: 26px; height: 26px; border-radius: 8px; }
