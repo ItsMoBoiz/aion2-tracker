@@ -1151,10 +1151,10 @@
     tabs.push(`<button class="tab tab-add" data-action="add-char" aria-label="Add character">${icon('plus')}</button>`);
     // Outside tools at the right end of the tabs row: build planner and interactive map.
     tabs.push(`<span class="tab-links">
-      <a class="map-link" href="https://gamers4.life/aion-2/database/en/build-calculator/" target="_blank" rel="noopener noreferrer"
-        title="Build planner (opens in a new tab)" aria-label="Open the AION 2 build planner in a new tab">${icon('sliders')}</a>
-      <a class="map-link" href="https://interactivemap.app/aion2/maps/verteron" target="_blank" rel="noopener noreferrer"
-        title="Interactive map (opens in a new tab)" aria-label="Open the AION 2 interactive map in a new tab">${icon('map')}</a>
+      <a class="tool-link build" href="https://gamers4.life/aion-2/database/en/build-calculator/" target="_blank" rel="noopener noreferrer"
+        title="Build Planner (opens in a new tab)"><span class="tl-ico">${icon('sword')}</span><span class="tl-text">Build Planner</span>${icon('external')}</a>
+      <a class="tool-link map" href="https://interactivemap.app/aion2/maps/verteron" target="_blank" rel="noopener noreferrer"
+        title="Interactive Map (opens in a new tab)"><span class="tl-ico">${icon('map')}</span><span class="tl-text">Interactive Map</span>${icon('external')}</a>
     </span>`);
     $('#tabs').innerHTML = tabs.join('');
   }
