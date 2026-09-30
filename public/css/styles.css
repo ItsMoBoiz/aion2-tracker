@@ -862,17 +862,17 @@ optgroup option { color: var(--ink); }
 .cf-row { display: flex; gap: 12px; align-items: flex-start; }
 .cf-grow { flex: 1; }
 .cf-level { flex: none; width: 150px; }
-.stepper {
+.lvl-stepper {
   display: flex; align-items: stretch; height: 38px; border-radius: 10px; border: 1px solid var(--line);
   background: var(--well); overflow: hidden; transition: border-color 0.15s, box-shadow 0.15s;
 }
-.stepper:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(138, 164, 255, 0.18); }
-.stepper input {
+.lvl-stepper:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(138, 164, 255, 0.18); }
+.lvl-stepper input {
   min-width: 0; min-height: 0; flex: 1; padding: 0 4px; border: 0; border-radius: 0; background: transparent;
   text-align: center; font-weight: 900; font-size: 1rem; -moz-appearance: textfield; appearance: textfield;
 }
-.stepper input:focus { box-shadow: none; }
-.stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.lvl-stepper input:focus { box-shadow: none; }
+.lvl-stepper input::-webkit-outer-spin-button, .lvl-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .step-btn {
   flex: none; width: 36px; display: grid; place-items: center; border: 0; padding: 0; cursor: pointer;
   background: rgba(var(--tint), 0.03); color: var(--muted); transition: background-color 0.15s, color 0.15s;

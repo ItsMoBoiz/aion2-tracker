@@ -2005,7 +2005,7 @@
             <input name="name" required maxlength="40" value="${esc(v.name)}" autocomplete="off" autofocus placeholder="Character name">
             <small class="err" hidden>Please enter a name.</small></label>
           <div class="field cf-level"><span id="cf-level-label">Level</span>
-            <div class="stepper" role="group" aria-labelledby="cf-level-label">
+            <div class="lvl-stepper" role="group" aria-labelledby="cf-level-label">
               <button type="button" class="step-btn" data-step="-1" aria-label="Lower level">${icon('minus')}</button>
               <input name="level" type="number" min="1" max="999" value="${esc(v.level)}" aria-labelledby="cf-level-label">
               <button type="button" class="step-btn" data-step="1" aria-label="Raise level">${icon('plus')}</button>
