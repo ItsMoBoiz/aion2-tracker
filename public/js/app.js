@@ -202,7 +202,7 @@
   ];
   const ROADMAP_TOTAL = ROADMAP.reduce((n, p) => n + p.tasks.length, 0);
 
-  /* Gear progression path (character page, under one-time content): the recommended order from
+  /* Progression path (character page, under one-time content): the recommended order from
      Level 45 to Sanctuary: Ludra, grouped by Gear Score. Keys are permanent; ticks are stored per
      character as c.path.done[key]. A step with `subs` is done when all of its sub-steps are.
      `who`: 'main' or 'alts' (which character the step is meant for); `ongoing`: a habit to keep up.
@@ -540,7 +540,7 @@
       weekly: { ...period(c.weekly), log: Array.isArray(c.weekly && c.weekly.log) ? c.weekly.log : [] },
       static: { prog: isObj(c.static && c.static.prog) ? c.static.prog : {} }, // one-time: never resets
       roadmap: { done: isObj(c.roadmap && c.roadmap.done) ? c.roadmap.done : {} }, // leveling roadmap ticks
-      path: { done: isObj(c.path && c.path.done) ? c.path.done : {} }, // gear progression path ticks
+      path: { done: isObj(c.path && c.path.done) ? c.path.done : {} }, // progression path ticks
     };
   }
 
@@ -1001,8 +1001,8 @@
       ${c.role === 'main' ? (() => {
         const done = GEAR_PATH.reduce((n, s) => n + gpKeys(s).filter(k => c.path.done[k]).length, 0);
         const cur = GEAR_PATH.find(s => gpKeys(s).some(k => !c.path.done[k]));
-        return `<div class="static-line gpath-line ${done === GEAR_PATH_TOTAL ? 'is-complete' : ''}" title="Gear progression path${cur ? ` · ${esc(cur.gs)} ${esc(cur.name)}` : ''}">
-          ${icon('sword')}<span>Gear path</span>${bar(Math.round((done / GEAR_PATH_TOTAL) * 100), `Gear progression path for ${c.name}`)}<b>${done}<i>/${GEAR_PATH_TOTAL}</i></b>
+        return `<div class="static-line gpath-line ${done === GEAR_PATH_TOTAL ? 'is-complete' : ''}" title="Progression path${cur ? ` · ${esc(cur.gs)} ${esc(cur.name)}` : ''}">
+          ${icon('sword')}<span>Progression</span>${bar(Math.round((done / GEAR_PATH_TOTAL) * 100), `Progression path for ${c.name}`)}<b>${done}<i>/${GEAR_PATH_TOTAL}</i></b>
         </div>`;
       })() : ''}
       ${(() => {
@@ -1141,7 +1141,7 @@
     if (btn) btn.innerHTML = `${icon('down')}${set.size === ROADMAP.length ? 'Collapse all' : 'Expand all'}`;
   }, true);
 
-  /* Gear progression path board (character page, under one-time content). Stages start closed. */
+  /* Progression path board (character page, under one-time content). Stages start closed. */
   const gpOpen = new Map(); // charId -> Set of open stage keys (kept while the page is open)
   const gpText = s => esc(s).replace(/\*(.+?)\*/g, '<b>$1</b>');
   const gpPlain = s => s.replace(/\*/g, '');
@@ -1209,22 +1209,29 @@
       </details>`;
     }).join('');
     const allOpen = open.size === GEAR_PATH.length;
-    return `<section class="board gear-path">
+    // Like the one-time board: never resets, and folds its stages away once every step is done.
+    const complete = total === GEAR_PATH_TOTAL;
+    const foldKey = c.id + ':path';
+    if (!complete) boardShown.delete(foldKey);
+    const folded = complete && !boardShown.has(foldKey);
+    return `<section class="board gear-path ${complete ? 'is-complete' : ''} ${folded ? 'is-folded' : ''}">
       <header class="board-head">
         <div class="ring" style="--p:${pct}%" role="img" aria-label="${total} of ${GEAR_PATH_TOTAL} steps done">
           <span><b>${pct}</b><small>%</small></span>
         </div>
         <div class="board-title">
-          <h3>Gear progression path</h3>
+          <h3>Progression path</h3>
           <p><span class="gp-owner">${icon('crown')}${esc(c.name)}</span> · The recommended order from Level 45 to Sanctuary: Ludra.</p>
-          <p class="board-reset">${icon('flag')}${next ? `Next: <b>${esc(next)}</b>` : 'Every step is done'}</p>
+          <p class="board-reset">${next ? `${icon('flag')}Next: <b>${esc(next)}</b>` : `${icon('check')}Every step is done`} <span class="gp-noreset">${icon('infinity')}No reset</span></p>
         </div>
         <div class="board-tools">
-          <button class="tool-icon gp-expand ${allOpen ? 'is-open' : ''}" data-action="gp-expand" ${ds} title="Expand or collapse all stages" aria-label="${allOpen ? 'Collapse all stages' : 'Expand all stages'}">${icon('down')}</button>
-          <button class="tool-icon" data-action="gp-reset" ${ds} title="Reset all" aria-label="Reset the gear progression path">${icon('refresh')}</button>
+          ${folded ? '' : `<button class="tool-icon gp-expand ${allOpen ? 'is-open' : ''}" data-action="gp-expand" ${ds} title="Expand or collapse all stages" aria-label="${allOpen ? 'Collapse all stages' : 'Expand all stages'}">${icon('down')}</button>`}
+          <button class="tool-icon" data-action="gp-reset" ${ds} title="Reset all" aria-label="Reset the progression path">${icon('refresh')}</button>
+          ${complete ? `<button class="tool-icon fold-btn" data-action="fold-board" ${ds} data-kind="path" aria-expanded="${!folded}"
+            title="${folded ? 'Show stages' : 'Hide stages'}" aria-label="${folded ? 'Show' : 'Hide'} the completed progression path">${icon(folded ? 'down' : 'up')}</button>` : ''}
         </div>
       </header>
-      <div class="rm-timeline">${stages}</div>
+      ${folded ? '' : `<div class="rm-timeline">${stages}</div>`}
     </section>`;
   }
 
@@ -1367,7 +1374,8 @@
                 <label><span>Lv</span><input type="number" class="lvl-input" data-level="${esc(c.id)}" min="1" max="999" value="${c.level}" aria-label="Level of ${esc(c.name)}"></label>
                 <button type="button" class="lvl-step" data-action="lvl-step" data-char="${esc(c.id)}" data-value="1" aria-label="Level up">${icon('plus')}</button>
               </span>
-              ${[c.cls, c.race, c.server].filter(Boolean).map(esc).join(' <i>·</i> ')}
+              ${c.cls ? `<span class="cls-chip" title="Class">${classEmblem(canonClass(c.cls)) ? `<span class="cls-ico">${classEmblem(canonClass(c.cls))}</span>` : ''}${esc(c.cls)}</span>` : ''}
+              ${[c.race, c.server].filter(Boolean).map(esc).join(' <i>·</i> ')}
             </p>
             ${c.notes ? `<p class="notes">${esc(c.notes)}</p>` : ''}
           </div>
@@ -1380,7 +1388,6 @@
         ${boardHTML(c, 'daily')}
         ${boardHTML(c, 'weekly')}
         ${boardHTML(c, 'static')}
-        ${c.role === 'main' ? gearPathHTML(c) : ''}
       </section>
 
       <aside class="detail-side">
@@ -1391,7 +1398,8 @@
         </div>
         ${side === 'history' ? `<article class="panel heat">${heatmapHTML(c)}</article>` : ''}
         ${side === 'calc' ? `<article class="panel" id="calc-panel">${calcHTML(c)}</article>` : ''}
-        ${side === 'roadmap' ? `<article class="panel rm-panel">${roadmapHTML(c)}</article>` : ''}
+        ${side === 'roadmap' ? `<article class="panel rm-panel">${roadmapHTML(c)}</article>
+          ${c.role === 'main' ? `<article class="panel rm-panel gp-panel">${gearPathHTML(c)}</article>` : ''}` : ''}
         ${side === 'notes' ? `<article class="panel">
           <header class="panel-head"><h3>Notes for ${esc(c.name)}</h3>
             <button class="btn ghost xs" data-action="open-notes" title="See notes for every character and general notes">${icon('note')}All notes</button></header>
@@ -3394,8 +3402,8 @@
       const c = getChar(el.dataset.char);
       if (!c || !Object.keys(c.path.done).length) return;
       confirmModal({
-        title: 'Reset the gear progression path?',
-        message: `This clears every tick on ${esc(c.name)}'s gear progression path.`,
+        title: 'Reset the progression path?',
+        message: `This clears every tick on ${esc(c.name)}'s progression path.`,
         confirmLabel: 'Reset', danger: true,
         onConfirm() { c.path.done = {}; save(); render(); },
       });
@@ -4047,6 +4055,14 @@
       return;
     }
     const app = window.firebase.initializeApp({ apiKey: cfg.apiKey, authDomain: cfg.authDomain, projectId: cfg.projectId, appId: cfg.appId });
+    // App Check proves requests come from this site (reCAPTCHA, invisible, score based). Off until a site
+    // key is set. Skipped on localhost, which reCAPTCHA doesn't vouch for.
+    if (cfg.appCheckSiteKey && !IS_LOCAL) {
+      try {
+        await loadScript(FIREBASE_SDK + 'firebase-app-check-compat.js');
+        app.appCheck().activate(new window.firebase.appCheck.ReCaptchaEnterpriseProvider(cfg.appCheckSiteKey), true);
+      } catch (e) { /* sync still works while App Check isn't enforced */ }
+    }
     fb.auth = app.auth();
     fb.db = app.firestore();
     fb.ready = true;

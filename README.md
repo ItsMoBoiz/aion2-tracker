@@ -1,6 +1,6 @@
 # Aion 2 - Progress Tracker
 
-Tracks daily, weekly and one-time activities, the leveling roadmap, the gear progression path, stats and
+Tracks daily, weekly and one-time activities, the leveling roadmap, the progression path, stats and
 gear for several characters.
 
 **Live site:** https://itsmoboiz.github.io/aion2-tracker/
@@ -16,7 +16,8 @@ to keep the same characters and progress on every device where you sign in with 
 ## Where data is saved
 
 - **Signed in:** each person's data is saved in their own private folder in Firebase
-  (`users/<uid>/docs`) and syncs across every browser where they sign in. Nobody else can read it.
+  (`users/<uid>/docs`) and syncs across every browser where they sign in. Other visitors can't read it;
+  the Firebase project owner can see it in the Firebase console.
   The browser also keeps a copy for instant loading and offline use; the newest change wins.
   The first time a device with existing data signs in, it asks which copy to keep.
 - **Not signed in:** data is saved only in that browser's `localStorage`.
@@ -89,6 +90,13 @@ GitHub pauses scheduled runs if the repository has had no activity for 60 days; 
 - `firestore.rules` must be published in the Firebase console (Firestore → Rules) whenever it changes.
 - The site's domain (`itsmoboiz.github.io`) must be listed under Authentication → Settings →
   Authorized domains.
+- The API key is restricted in Google Cloud Console → APIs & Services → Credentials to the site's
+  address and the Firebase APIs it needs.
+- **App Check** (reCAPTCHA from Google Cloud Console → Security → reCAPTCHA) proves requests come from
+  this site. The key ID goes in `appCheckSiteKey` in `firebase-config.js` and in Firebase console → App Check.
+  App Check is skipped on `localhost`, so once it's enforced, local copies can't sync (they still save in the browser).
+- `index.html` has a Content Security Policy. If you add a script, font or service from another website,
+  add its address there too, or the browser will block it.
 
 ## Running it locally (optional)
 

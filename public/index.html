@@ -3,6 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Content Security Policy: only this site's own scripts run (plus Google sign-in and reCAPTCHA),
+       and the page only talks to Google/Firebase. Keep in sync when adding outside services. -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' https://apis.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com;
+    img-src 'self' data: blob: https:;
+    connect-src 'self' https://*.googleapis.com https://apis.google.com;
+    frame-src https://aion2-tracker-c67c2.firebaseapp.com https://apis.google.com https://accounts.google.com https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/;
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="theme-color" content="#0a0d17">
   <title>Aion 2 - Progress Tracker</title>
   <link rel="icon" type="image/svg+xml" href="assets/logo.svg?v=__BUILD__">

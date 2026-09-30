@@ -563,6 +563,22 @@ optgroup option { color: var(--ink); }
 
 /* Quick level control in the character header */
 .hero-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; }
+/* Class name as a chip in the class colour */
+.cls-chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px 0 4px; border-radius: 999px;
+  font-size: 0.8rem; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--cc) 80%, var(--ink));
+  border: 1px solid color-mix(in srgb, var(--cc) 45%, transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cc) 20%, transparent), color-mix(in srgb, var(--cc) 6%, transparent));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--cc) 14%, transparent);
+}
+.cls-chip:not(:has(.cls-ico)) { padding-left: 11px; }
+.cls-ico {
+  display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; color: #fff;
+  background: radial-gradient(120% 120% at 28% 12%, color-mix(in srgb, var(--cc) 85%, #ffffff), color-mix(in srgb, var(--cc) 45%, #0b0e1a) 72%);
+}
+.cls-ico .emblem { width: 15px; height: 15px; }
+[data-theme="light"] .cls-chip { color: color-mix(in srgb, var(--cc) 70%, #1a1f33); }
 .lvl-edit {
   display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: 999px;
   background: var(--well); border: 1px solid var(--line);
@@ -1460,8 +1476,10 @@ optgroup option { color: var(--ink); }
 }
 .rm-next b { color: var(--ink); }
 .rm-next .ico { width: 14px; height: 14px; color: var(--ok); }
-/* ---------- 7d. Gear progression path (character page, under one-time content) ---------- */
+/* ---------- 7d. Progression path (character page, under one-time content) ---------- */
 .board.gear-path, .static-line.gpath-line { --kc: #fb923c; }
+.gp-noreset { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; color: var(--static); font-weight: 700; }
+.gp-noreset .ico { width: 13px; height: 13px; }
 .gp-owner { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; color: var(--gold); }
 .gp-owner .ico { width: 13px; height: 13px; }
 .gp-expand .ico { transition: transform 0.2s; }
@@ -1507,6 +1525,15 @@ optgroup option { color: var(--ink); }
 .gp-group.is-done .gp-parent .gp-num { color: var(--ok); }
 .gp-subs { margin-left: 16px; padding-left: 12px; border-left: 2px solid color-mix(in srgb, var(--kc) 30%, transparent); }
 .gp-subs .gp-num { min-width: 34px; }
+/* In the narrow side panel (Roadmap tab) */
+.rm-panel .gp-item { gap: 8px; padding: 8px 9px; }
+.rm-panel .gp-line { font-size: 0.84rem; }
+.rm-panel .gp-text small { font-size: 0.74rem; }
+.rm-panel .gp-num { min-width: 20px; }
+.rm-panel .gp-subs .gp-num { min-width: 28px; }
+.rm-panel .gp-group { padding: 8px 9px 5px; }
+.rm-panel .gp-parent { padding-left: 28px; }
+.rm-panel .gp-subs { margin-left: 6px; padding-left: 8px; }
 
 @media (max-width: 720px) {
   .rm-phase summary { grid-template-columns: auto minmax(0, 1fr) auto auto; }

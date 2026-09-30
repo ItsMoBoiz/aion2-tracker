@@ -2,14 +2,31 @@ rules_version = '2';
 
 // Paste into Firebase console → Firestore Database → Rules, then Publish.
 // Each signed-in person can read and write only their own tracker (users/<their uid>/docs/...).
+// Only the two kinds of document the app writes are accepted:
+//   tracker        { v, updatedAt, state }   characters, tasks and settings
+//   week-<start>   { week }                  one archived week of history
 // Everything else is closed.
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function validDoc(docId) {
+      let d = request.resource.data;
+      return (docId == 'tracker'
+                && d.keys().hasOnly(['v', 'updatedAt', 'state'])
+                && d.v is int && d.updatedAt is number && d.state is map)
+          || (docId.matches('week-[0-9]{1,15}')
+                && d.keys().hasOnly(['week'])
+                && d.week is map);
+    }
+
     match /users/{uid}/docs/{docId} {
       // Reading the whole list is a query, where the document name isn't known yet,
       // so the read rule checks only who is asking.
-      allow read: if request.auth != null && request.auth.uid == uid;
-      allow write: if request.auth != null && request.auth.uid == uid && docId.size() <= 64;
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validDoc(docId);
     }
   }
 }
