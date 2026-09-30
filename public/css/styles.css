@@ -813,6 +813,23 @@ optgroup option { color: var(--ink); }
 @keyframes crown-sheen { 0%, 60% { transform: translateX(-130%); } 90%, 100% { transform: translateX(130%); } }
 @keyframes crown-pulse { 50% { filter: drop-shadow(0 0 5px rgba(245, 201, 106, 1)) drop-shadow(0 0 12px rgba(245, 201, 106, 0.6)); } }
 .role-badge.alt { color: var(--muted); border: 1px solid var(--line); }
+/* Main character: a gold crown resting on the avatar's top corner, with a gold ring */
+.av-wrap { position: relative; display: inline-flex; flex: none; }
+.av-wrap.is-main .avatar { box-shadow: 0 0 0 2px var(--card), 0 0 0 3.5px rgba(245, 201, 106, 0.85), 0 0 18px rgba(245, 201, 106, 0.3); }
+.av-crown {
+  position: absolute; top: -9px; right: -9px; z-index: 1; display: grid; place-items: center;
+  width: 22px; height: 22px; border-radius: 50%; color: #3a2400; transform: rotate(18deg);
+  background: linear-gradient(135deg, #fff1c2, #f5c96a 50%, #d9922c);
+  box-shadow: 0 0 0 2px var(--card), 0 2px 6px rgba(0, 0, 0, 0.35), 0 0 12px rgba(245, 201, 106, 0.6);
+  animation: crown-glow-dot 2.8s ease-in-out infinite;
+}
+.av-crown .ico { width: 13px; height: 13px; stroke-width: 2.4; fill: rgba(58, 36, 0, 0.15); }
+.av-wrap:has(.avatar.lg) .av-crown { top: -10px; right: -10px; width: 26px; height: 26px; }
+.av-wrap:has(.avatar.lg) .av-crown .ico { width: 15px; height: 15px; }
+@keyframes crown-glow-dot {
+  50% { box-shadow: 0 0 0 2px var(--card), 0 2px 6px rgba(0, 0, 0, 0.35), 0 0 20px rgba(245, 201, 106, 0.95); }
+}
+@media (prefers-reduced-motion: reduce) { .av-crown { animation: none; } }
 .char-card.is-main { border-color: rgba(245, 201, 106, 0.35); }
 .tab-crown { display: inline-flex; color: var(--gold); }
 .tab-crown .ico { width: 15px; height: 15px; }
@@ -1445,6 +1462,9 @@ optgroup option { color: var(--ink); }
 .rm-next .ico { width: 14px; height: 14px; color: var(--ok); }
 /* ---------- 7d. Gear progression path (character page, under one-time content) ---------- */
 .board.gear-path { --kc: #fb923c; }
+.card-grid + .board.gear-path { margin-top: 18px; }
+.gp-owner { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; color: var(--gold); }
+.gp-owner .ico { width: 13px; height: 13px; }
 .gp-expand .ico { transition: transform 0.2s; }
 .gp-expand.is-open .ico { transform: rotate(180deg); }
 .gp-steps, .gp-subs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }

@@ -962,18 +962,23 @@
         ${ringTile('weekly', 'Weeklies done', wd, wt)}
       </section>
       ${mainChar() ? '' : `<p class="notice">${icon('crown')}<span>No main character is set. Server-wide dailies such as Duty Missions only show on your main. Open a character and choose <b>Make main</b>.</span></p>`}
-      <section class="card-grid">${orderedChars().map(charCardHTML).join('')}</section>`;
+      <section class="card-grid">${orderedChars().map(charCardHTML).join('')}</section>
+      ${mainChar() ? gearPathHTML(mainChar()) : ''}`;
   }
 
   const roleBadge = c => (c.role === 'main'
-    ? `<span class="role-badge main">${icon('crown')}Main</span>`
+    ? '' // the main wears a crown on its avatar instead (see crowned)
     : '<span class="role-badge alt">Alt</span>');
+  // Avatar with a glowing crown resting on its top corner for the main character.
+  const crowned = (c, html) => (c.role === 'main'
+    ? `<span class="av-wrap is-main" title="Main character">${html}<span class="av-crown" aria-label="Main character">${icon('crown')}</span></span>`
+    : html);
 
   function charCardHTML(c) {
     const k = calc(c);
     return `<article class="char-card ${c.role === 'main' ? 'is-main' : ''}" style="--cc:${classColor(c)}">
       <header class="char-head">
-        ${avatar(c)}
+        ${crowned(c, avatar(c))}
         <div class="char-id"><h3>${esc(c.name)} ${roleBadge(c)}</h3><p>${metaLine(c)}</p></div>
         ${(() => {
           const game = effectiveCp(c);
@@ -1154,7 +1159,8 @@
     if (!gpOpen.has(c.id)) gpOpen.set(c.id, new Set());
     const open = gpOpen.get(c.id);
     const ds = `data-char="${esc(c.id)}"`;
-    const tags = st => `${st.who ? `<span class="gp-tag ${st.who}">${icon(GP_WHO[st.who][0])}${GP_WHO[st.who][1]}</span>` : ''}${st.ongoing ? `<span class="gp-tag ongoing">${icon('refresh')}Ongoing</span>` : ''}`;
+    // The path only shows for the main, so only the "Alts" tag is worth showing.
+    const tags = st => `${st.who === 'alts' ? `<span class="gp-tag ${st.who}">${icon(GP_WHO[st.who][0])}${GP_WHO[st.who][1]}</span>` : ''}${st.ongoing ? `<span class="gp-tag ongoing">${icon('refresh')}Ongoing</span>` : ''}`;
     const item = (x, num) => {
       const on = done(x.k);
       return `<button class="gp-item ${on ? 'is-done' : ''}" data-action="gp-toggle" ${ds} data-task="${x.k}" aria-pressed="${on}">
@@ -1200,7 +1206,7 @@
         </div>
         <div class="board-title">
           <h3>Gear progression path</h3>
-          <p>The recommended order from Level 45 to Sanctuary: Ludra. Ticks are saved for each character.</p>
+          <p><span class="gp-owner">${icon('crown')}${esc(c.name)}</span> · The recommended order from Level 45 to Sanctuary: Ludra.</p>
           <p class="board-reset">${icon('flag')}${next ? `Next: <b>${esc(next)}</b>` : 'Every step is done'}</p>
         </div>
         <div class="board-tools">
@@ -1342,7 +1348,7 @@
     return `<div class="detail" style="--cc:${classColor(c)}">
       <section class="detail-main">
         <article class="panel hero">
-          ${avatar(c, 'lg')}
+          ${crowned(c, avatar(c, 'lg'))}
           <div class="hero-id">
             <h2>${esc(c.name)} ${roleBadge(c)}</h2>
             <p class="hero-meta">
@@ -1364,7 +1370,7 @@
         ${boardHTML(c, 'daily')}
         ${boardHTML(c, 'weekly')}
         ${boardHTML(c, 'static')}
-        ${gearPathHTML(c)}
+        ${c.role === 'main' ? gearPathHTML(c) : ''}
       </section>
 
       <aside class="detail-side">
