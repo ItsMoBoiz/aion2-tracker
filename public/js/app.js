@@ -37,9 +37,6 @@
   const SIDE_TABS = [['roadmap', 'Roadmap'], ['build', 'Stats & Gear'], ['wallet', 'Currency'],
     ['collect', 'Collections'], ['growth', 'Growth'], ['notes', 'Notes']];
   const OLD_SIDE_TABS = { stats: 'build', gear: 'build', calc: 'build', history: 'roadmap' };
-  // AION 2 Early Access opening: 30 September 2026, 13:30 UTC (16:30 Qatar time, AST).
-  // Moved from 13:00 UTC by the "Client Decryption and Early Access Start Time" notice.
-  const LAUNCH_AT = Date.parse('2026-09-30T13:30:00Z');
   // Odyle Energy: stores up to 840 and refills 15 every 3 hours; one reward cube costs 40.
   const ODYLE = { max: 840, per: 15, every: 3 * 36e5, cube: 40 };
   // Currency tracker (per character). `goal` is a default target the player can change.
@@ -618,15 +615,17 @@
     };
   }
 
-  // Aion 2 weekly reset: Wednesday 09:00 server time = 16:00 Qatar time (AST, UTC+3).
+  // Aion 2 resets: daily at 10:00 Qatar time (AST, UTC+3); weekly on Wednesday at 10:00.
+  // RESET_REV 2 moved the defaults from 16:00 to 10:00 (see normalize()).
+  const RESET_REV = 2;
   function defaultSchedule() {
-    return { tz: 'Asia/Qatar', daily: { hour: 16, minute: 0 }, weekly: { weekday: 3, hour: 16, minute: 0 } };
+    return { tz: 'Asia/Qatar', daily: { hour: 10, minute: 0 }, weekly: { weekday: 3, hour: 10, minute: 0 } };
   }
 
   function defaultState() {
     return {
       schema: SCHEMA,
-      settings: { ...defaultSchedule(), theme: 'dark', riftAlert: normRiftAlert(), scoring: defaultScoring() },
+      settings: { ...defaultSchedule(), resetRev: RESET_REV, theme: 'dark', riftAlert: normRiftAlert(), scoring: defaultScoring() },
       tasks: defaultTasks(),
       catalog: { seen: CATALOG.map(e => e.key) },
       characters: [],
@@ -824,6 +823,12 @@
     for (const c of characters) c.role = c === firstMain ? 'main' : 'alt';
     // Version 2 replaced the placeholder task lists with the Aion 2 activities.
     const useSavedTasks = oldSchema >= 2;
+    // Saves still on the old default schedule (daily and Wednesday 16:00 Qatar time) move to 10:00.
+    // Anyone who picked their own reset times keeps them.
+    const at = (o, k, dflt) => num(o && o[k], dflt);
+    const legacyReset = isObj(rs.daily) && num(rs.resetRev) < RESET_REV && (!rs.tz || rs.tz === 'Asia/Qatar')
+      && at(rs.daily, 'hour', 16) === 16 && at(rs.daily, 'minute', 0) === 0
+      && at(rs.weekly, 'weekday', 3) === 3 && at(rs.weekly, 'hour', 16) === 16 && at(rs.weekly, 'minute', 0) === 0;
     const s = {
       schema: SCHEMA,
       settings: {
@@ -831,8 +836,9 @@
         theme: rs.theme === 'light' ? 'light' : 'dark', // dark is the default look
         riftAlert: normRiftAlert(rs.riftAlert),
         odyleAlert: !!rs.odyleAlert, // alert when a character's Odyle Energy is full
-        daily: normTime(rs.daily, d.settings.daily),
-        weekly: {
+        resetRev: RESET_REV,
+        daily: legacyReset ? { ...d.settings.daily } : normTime(rs.daily, d.settings.daily),
+        weekly: legacyReset ? { ...d.settings.weekly } : {
           weekday: clamp(Math.round(num(rs.weekly && rs.weekly.weekday, 3)), 0, 6),
           ...normTime(rs.weekly, d.settings.weekly),
         },
@@ -871,7 +877,22 @@
     };
     const added = applyCatalog(s);
     for (const name of added) if (!catalogAdded.includes(name)) catalogAdded.push(name);
+    // Hidden flag (not saved): processResets() moves the current day/week onto the new schedule
+    // so the move to 10:00 doesn't count as a reset and clear anyone's ticks.
+    if (legacyReset) Object.defineProperty(s, 'legacyReset', { value: true, writable: true, enumerable: false });
     return s;
+  }
+
+  // Moves characters' current day/week from the old 16:00 schedule to the new one (see normalize()).
+  function migrateResetSchedule() {
+    if (!state.legacyReset) return;
+    state.legacyReset = false;
+    const oldSch = schedule({ tz: 'Asia/Qatar', daily: { hour: 16, minute: 0 }, weekly: { weekday: 3, hour: 16, minute: 0 } });
+    const newSch = schedule(state.settings);
+    for (const c of state.characters) {
+      if (c.daily.period === oldSch.dailyStart) c.daily.period = newSch.dailyStart;
+      if (c.weekly.period === oldSch.weeklyStart) c.weekly.period = newSch.weeklyStart;
+    }
   }
 
   function load() {
@@ -1016,6 +1037,7 @@
   // Rolls every character into the current daily/weekly period.
   // The finished day is logged into its week; a finished week is archived to history.
   function processResets(now = Date.now()) {
+    migrateResetSchedule();
     const sch = schedule(state.settings, now);
     let daily = false, weekly = false;
     for (const c of state.characters) {
@@ -1099,11 +1121,6 @@
           </div>
         </div>
         <div class="resets">
-          <div class="reset-chip launch-chip" id="launch-chip" hidden>
-            <span class="rc-label">${icon('rocket')} <span data-launch="label">AION 2 launch</span></span>
-            <span class="rc-when" data-launch="when"></span>
-            <span class="rc-in" data-launch="in"></span>
-          </div>
           <div class="reset-chip daily">
             <span class="rc-label">${icon('clock')} Daily reset</span>
             <span class="rc-when" data-when="daily"></span>
@@ -2015,6 +2032,12 @@
 
   function openOdyleModal(c) {
     const cur = odyleNow(c);
+    // Pre-fill "next +15 in" with the current countdown, when there is one.
+    const now0 = Date.now();
+    const nextMs = cur != null && cur < ODYLE.max
+      ? c.odyle.at + (Math.floor((now0 - c.odyle.at) / ODYLE.every) + 1) * ODYLE.every - now0 : 0;
+    const nextMin = Math.ceil(nextMs / 60e3);
+    const everyMin = ODYLE.every / 60e3;
     const m = openModal({
       title: `Odyle Energy — ${c.name}`,
       size: 'sm',
@@ -2026,9 +2049,16 @@
             <button type="button" class="btn ghost xs" data-m="od-set" data-value="${ODYLE.max / 2}">Half</button>
             <button type="button" class="btn ghost xs" data-m="od-set" data-value="${ODYLE.max}">Full (${fmtInt(ODYLE.max)})</button>
           </div>
+          <fieldset class="od-next-in">
+            <legend>Next +${ODYLE.per} in <small>(optional — copy the countdown from the game)</small></legend>
+            <div class="od-time">
+              <label><input name="nextH" type="number" min="0" max="3" inputmode="numeric" value="${nextMin ? Math.floor(nextMin / 60) : ''}" placeholder="0" aria-label="Hours"><span>h</span></label>
+              <label><input name="nextM" type="number" min="0" max="59" inputmode="numeric" value="${nextMin ? nextMin % 60 : ''}" placeholder="0" aria-label="Minutes"><span>m</span></label>
+            </div>
+          </fieldset>
           <label class="check-row"><input type="checkbox" name="alert" ${state.settings.odyleAlert ? 'checked' : ''}> Alert me when a character's Odyle Energy is full</label>
         </form>
-        <p class="fine">Copy the number from the game. It refills by ${ODYLE.per} every 3 hours up to ${fmtInt(ODYLE.max)}, counted from now. One reward cube costs ${ODYLE.cube}.
+        <p class="fine">Copy the number from the game. It refills by ${ODYLE.per} every 3 hours up to ${fmtInt(ODYLE.max)}. Without a "next +${ODYLE.per}" time, the 3 hours count from when you save. One reward cube costs ${ODYLE.cube}.
           The alert uses the sound and desktop setting of the portal alert, and needs the site open in a tab.</p>`,
       footer: `<button type="button" class="btn ghost" data-m="cancel">Cancel</button>
                <button type="submit" form="odyle-form" class="btn primary">Save</button>`,
@@ -2037,7 +2067,15 @@
         submit(form) {
           const raw = form.elements.value.value.trim();
           if (raw === '') c.odyle = { value: 0, at: 0 };
-          else setOdyle(c, raw, false);
+          else {
+            setOdyle(c, raw, false);
+            // "Next +15 in h:m": line the refill up with the game's own countdown.
+            const hRaw = form.elements.nextH.value.trim(), mRaw = form.elements.nextM.value.trim();
+            const mins = clamp(Math.round(num(hRaw) * 60 + num(mRaw)), 0, everyMin);
+            if ((hRaw !== '' || mRaw !== '') && mins > 0 && c.odyle.value < ODYLE.max) {
+              c.odyle.at = Date.now() + mins * 60e3 - ODYLE.every; // the next tick lands exactly then
+            }
+          }
           state.settings.odyleAlert = form.elements.alert.checked;
           if (state.settings.odyleAlert) getAudio(); // unlock sound while we have a click
           save();
@@ -2475,19 +2513,6 @@
     return true;
   }
 
-  /* ---------- 7j. Launch countdown (topbar chip, until a day after launch) ---------- */
-  function updateLaunch(now) {
-    const chip = $('#launch-chip');
-    if (!chip) return;
-    const live = now >= LAUNCH_AT;
-    chip.hidden = now > LAUNCH_AT + 864e5;
-    if (chip.hidden) return;
-    chip.classList.toggle('is-live', live);
-    $('[data-launch="label"]', chip).textContent = live ? 'AION 2 is live' : 'AION 2 launch';
-    $('[data-launch="when"]', chip).textContent = live ? `Since ${fmtClock.format(LAUNCH_AT)}` : fmtWhen.format(LAUNCH_AT);
-    $('[data-launch="in"]', chip).innerHTML = live ? `Good luck, Daeva!` : `in <b>${esc(fmtDur(LAUNCH_AT - now))}</b>`;
-  }
-
   /* Personal notes: shown in the header's Notes dialog (all notes, with filters) and in each
      character's Notes tab (that character's notes). Pinned first, then newest first. */
   let editingNote = null;       // id of the note being edited
@@ -2749,7 +2774,6 @@
     for (const el of $$('[data-when]')) el.textContent = fmtWhen.format(next[el.dataset.when]);
     updateRift(now);
     updateOdyle(now);
-    updateLaunch(now);
   }
 
   /* Spacetime Rift: portals open every 3 hours on the hour (GMT+3 server time) and can only be

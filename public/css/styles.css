@@ -2180,13 +2180,7 @@ optgroup option { color: var(--ink); }
 .theme-btn, .icon-square { width: 38px; padding: 0; }
 .theme-btn .ico, .icon-square .ico { width: 18px; height: 18px; }
 
-/* ---------- 11. Launch countdown, Odyle Energy, growth, counters, share card, weekly recap ---------- */
-
-/* Launch countdown chip */
-.launch-chip { --lc: #fb7185; border-color: color-mix(in srgb, var(--lc) 45%, transparent); background: color-mix(in srgb, var(--lc) 8%, transparent); }
-.launch-chip .rc-label { color: var(--lc); }
-.launch-chip.is-live { --lc: var(--ok); animation: launch-glow 2.4s ease-in-out infinite; }
-@keyframes launch-glow { 50% { box-shadow: 0 0 18px color-mix(in srgb, var(--lc) 35%, transparent); } }
+/* ---------- 11. Odyle Energy, growth, counters, share card, weekly recap ---------- */
 
 /* Odyle Energy card (character page) and overview line */
 .odyle-card {
@@ -2226,6 +2220,13 @@ optgroup option { color: var(--ink); }
 .odyle-card.is-unset .btn { align-self: flex-start; }
 .static-line.odyle-line { --kc: #fbbf24; }
 .od-quick { margin: 10px 0 0; }
+.od-next-in { border: 0; margin: 12px 0 0; padding: 0; min-width: 0; }
+.od-next-in legend { padding: 0; margin-bottom: 6px; font-size: 0.8rem; font-weight: 700; color: var(--muted); }
+.od-next-in legend small { font-weight: 600; color: var(--faint); }
+.od-time { display: flex; gap: 10px; }
+.od-time label { display: inline-flex; align-items: center; gap: 6px; }
+.od-time input { width: 72px; text-align: center; }
+.od-time span { font-weight: 800; color: var(--muted); }
 
 /* Growth chart */
 .growth-now { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 8px; }
