@@ -10,7 +10,7 @@ window.AION2_FIREBASE = {
 
   // Firebase App Check: the reCAPTCHA key ID from Google Cloud Console → Security → reCAPTCHA
   // (public; it only works on the domains listed on the key). Leave empty to keep App Check off.
-  appCheckSiteKey: '6LcqL9ctAAAAAD9XtSL8OYp7pusDPPtFIdds5Aiy',
+  appCheckSiteKey: '6LeAE9ctAAAAALFb9IjmRsDIG02srIojVyWrPxJk',
 
   // SHA-256 of the admin's sign-in email (lowercase), so the address itself isn't published.
   // Only this account sees "Clear all data" on the public site.
