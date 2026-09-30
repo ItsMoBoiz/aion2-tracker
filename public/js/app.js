@@ -37,8 +37,9 @@
   const SIDE_TABS = [['roadmap', 'Roadmap'], ['build', 'Stats & Gear'], ['wallet', 'Currency'],
     ['collect', 'Collections'], ['growth', 'Growth'], ['notes', 'Notes']];
   const OLD_SIDE_TABS = { stats: 'build', gear: 'build', calc: 'build', history: 'roadmap' };
-  // AION 2 global launch: 30 September 2026, 16:00 Qatar time (AST, UTC+3).
-  const LAUNCH_AT = Date.parse('2026-09-30T16:00:00+03:00');
+  // AION 2 Early Access opening: 30 September 2026, 13:30 UTC (16:30 Qatar time, AST).
+  // Moved from 13:00 UTC by the "Client Decryption and Early Access Start Time" notice.
+  const LAUNCH_AT = Date.parse('2026-09-30T13:30:00Z');
   // Odyle Energy: stores up to 840 and refills 15 every 3 hours; one reward cube costs 40.
   const ODYLE = { max: 840, per: 15, every: 3 * 36e5, cube: 40 };
   // Currency tracker (per character). `goal` is a default target the player can change.
