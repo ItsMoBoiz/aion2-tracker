@@ -718,6 +718,8 @@ optgroup option { color: var(--ink); }
 }
 .tag .ico { width: 12px; height: 12px; }
 .tag.main { color: var(--gold); border-color: rgba(245, 201, 106, 0.4); background: rgba(245, 201, 106, 0.08); }
+.tag.icon-only { width: 24px; height: 24px; padding: 0; justify-content: center; border-radius: 50%; }
+.tag.icon-only .ico { width: 13px; height: 13px; filter: drop-shadow(0 0 3px rgba(245, 201, 106, 0.7)); }
 .tag.loc { color: var(--accent-2); }
 .qt-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
 

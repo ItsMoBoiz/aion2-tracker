@@ -1150,7 +1150,7 @@
       </header>
       ${t.desc ? `<p class="qt-desc">${esc(t.desc)}</p>` : ''}
       ${t.location || t.info || t.mainOnly ? `<div class="qt-meta">
-        ${t.mainOnly ? `<span class="tag main">${icon('crown')}Main only</span>` : ''}
+        ${t.mainOnly ? `<span class="tag main icon-only" title="Main character only" aria-label="Main character only">${icon('crown')}</span>` : ''}
         ${t.location ? `<span class="tag loc">${icon('pin')}${esc(t.location)}</span>` : ''}
         ${t.info ? `<span class="info-wrap">
           <button class="info-btn" data-action="info" aria-expanded="false" aria-label="About ${esc(t.name)}">${icon('infoMark')}</button>
