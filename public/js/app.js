@@ -2227,99 +2227,152 @@
     const k = calc(c);
     const tier = cp ? cpTier(cp) : null;
     const tc = tier ? tier.color : '#8aa4ff';
-
-    // Background with class and tier glows
-    g.fillStyle = '#0a0d17'; g.fillRect(0, 0, W, H);
-    let rg = g.createRadialGradient(160, 120, 0, 160, 120, 760);
-    rg.addColorStop(0, hexA(cc, 0.38)); rg.addColorStop(1, 'rgba(10,13,23,0)');
-    g.fillStyle = rg; g.fillRect(0, 0, W, H);
-    rg = g.createRadialGradient(1100, 620, 0, 1100, 620, 620);
-    rg.addColorStop(0, hexA(tc, 0.3)); rg.addColorStop(1, 'rgba(10,13,23,0)');
-    g.fillStyle = rg; g.fillRect(0, 0, W, H);
-    rrect(g, 14, 14, W - 28, H - 28, 30); g.strokeStyle = 'rgba(255,255,255,0.09)'; g.lineWidth = 2; g.stroke();
-
-    // Class emblem
-    const ex = 64, ey = 60, es = 150;
-    const eg = g.createLinearGradient(ex, ey, ex + es, ey + es);
-    eg.addColorStop(0, hexA(cc, 1)); eg.addColorStop(1, hexA(cc, 0.45));
-    rrect(g, ex, ey, es, es, 36); g.fillStyle = eg; g.fill();
-    if (c.role === 'main') { g.lineWidth = 5; g.strokeStyle = '#f5c96a'; g.stroke(); }
     const canon = canonClass(c.cls);
-    if (CLASS_EMBLEMS[canon]) {
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="200" height="200" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${CLASS_EMBLEMS[canon]}</svg>`;
+    const svgImg = async (paths, color, size) => {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="${size}" height="${size}" fill="none" stroke="${color}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
       const img = new Image();
       img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-      try { await img.decode(); g.drawImage(img, ex + 25, ey + 25, es - 50, es - 50); } catch (e) { /* skip emblem */ }
+      await img.decode();
+      return img;
+    };
+    // Rounded pill with text; returns its width.
+    const pill = (text, x, y, { color, fill, stroke, size = 22, weight = 800, padX = 16, h = 40 }) => {
+      g.font = F(weight, size);
+      const w = g.measureText(text).width + padX * 2;
+      rrect(g, x, y, w, h, h / 2);
+      if (fill) { g.fillStyle = fill; g.fill(); }
+      if (stroke) { g.strokeStyle = stroke; g.lineWidth = 2; g.stroke(); }
+      g.fillStyle = color; g.textBaseline = 'middle';
+      g.fillText(text, x + padX, y + h / 2 + 1);
+      g.textBaseline = 'alphabetic';
+      return w;
+    };
+
+    // Background: deep base, class glow top-left, tier glow bottom-right, faint diagonal lines
+    g.fillStyle = '#090c16'; g.fillRect(0, 0, W, H);
+    let rg = g.createRadialGradient(140, 90, 0, 140, 90, 720);
+    rg.addColorStop(0, hexA(cc, 0.34)); rg.addColorStop(1, 'rgba(9,12,22,0)');
+    g.fillStyle = rg; g.fillRect(0, 0, W, H);
+    rg = g.createRadialGradient(1120, 640, 0, 1120, 640, 560);
+    rg.addColorStop(0, hexA(tc, 0.26)); rg.addColorStop(1, 'rgba(9,12,22,0)');
+    g.fillStyle = rg; g.fillRect(0, 0, W, H);
+    g.save();
+    g.strokeStyle = 'rgba(255,255,255,0.025)'; g.lineWidth = 1;
+    for (let x = -H; x < W; x += 22) { g.beginPath(); g.moveTo(x, H); g.lineTo(x + H, 0); g.stroke(); }
+    g.restore();
+
+    // Big faded class emblem on the right
+    if (CLASS_EMBLEMS[canon]) {
+      try { g.globalAlpha = 0.09; g.drawImage(await svgImg(CLASS_EMBLEMS[canon], cc, 440), 760, 20, 440, 440); } catch (e) { /* skip */ }
+      g.globalAlpha = 1;
+    }
+
+    // Frame and a top accent strip in class → tier colours
+    rrect(g, 14, 14, W - 28, H - 28, 30); g.strokeStyle = 'rgba(255,255,255,0.09)'; g.lineWidth = 2; g.stroke();
+    g.save(); rrect(g, 14, 14, W - 28, H - 28, 30); g.clip();
+    const strip = g.createLinearGradient(0, 0, W, 0);
+    strip.addColorStop(0, cc); strip.addColorStop(1, tc);
+    g.fillStyle = strip; g.fillRect(0, 14, W, 6);
+    g.restore();
+
+    // Class emblem tile (gold ring for the main character)
+    const ex = 60, ey = 56, es = 136;
+    const eg = g.createLinearGradient(ex, ey, ex + es, ey + es);
+    eg.addColorStop(0, hexA(cc, 1)); eg.addColorStop(1, hexA(cc, 0.45));
+    g.save(); g.shadowColor = hexA(cc, 0.5); g.shadowBlur = 30;
+    rrect(g, ex, ey, es, es, 34); g.fillStyle = eg; g.fill(); g.restore();
+    if (c.role === 'main') { rrect(g, ex, ey, es, es, 34); g.lineWidth = 5; g.strokeStyle = '#f5c96a'; g.stroke(); }
+    if (CLASS_EMBLEMS[canon]) {
+      try { g.drawImage(await svgImg(CLASS_EMBLEMS[canon], '#ffffff', 200), ex + 22, ey + 22, es - 44, es - 44); } catch (e) { /* skip */ }
     } else {
-      g.fillStyle = '#fff'; g.font = F(900, 64); g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillStyle = '#fff'; g.font = F(900, 60); g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillText(initials(c.name), ex + es / 2, ey + es / 2 + 4);
+      g.textAlign = 'left'; g.textBaseline = 'alphabetic';
     }
 
-    // Name, role and details
-    g.textAlign = 'left'; g.textBaseline = 'alphabetic';
-    g.fillStyle = '#ffffff'; g.font = F(900, 68);
-    const name = String(c.name).slice(0, 22);
-    g.fillText(name, 250, 128);
+    // Name, main badge, and detail pills
+    const nx = 224;
+    g.fillStyle = '#ffffff'; g.font = F(900, 66);
+    const name = String(c.name).slice(0, 20);
+    g.fillText(name, nx, 118);
     if (c.role === 'main') {
-      const nx = 250 + g.measureText(name).width + 22;
-      g.font = F(900, 22); spaced('3px');
-      const tw = g.measureText('MAIN').width + 34;
-      rrect(g, nx, 90, tw, 40, 20); g.fillStyle = '#f5c96a'; g.fill();
-      g.fillStyle = '#2a1a00'; g.fillText('MAIN', nx + 17, 118); spaced('0px');
+      const bx = nx + g.measureText(name).width + 20;
+      spaced('3px');
+      pill('MAIN', bx, 80, { color: '#2a1a00', fill: '#f5c96a', size: 20, weight: 900, padX: 16, h: 38 });
+      spaced('0px');
     }
-    g.fillStyle = '#9aa4c2'; g.font = F(700, 30);
-    g.fillText([`Lv ${c.level}`, c.cls, c.race, c.server].filter(Boolean).join('  ·  '), 252, 182);
+    let px = nx;
+    px += pill(`Lv ${c.level}`, px, 146, { color: '#ffffff', fill: 'rgba(255,255,255,0.08)', stroke: 'rgba(255,255,255,0.14)' }) + 10;
+    if (c.cls) px += pill(c.cls, px, 146, { color: cc, fill: hexA(cc, 0.14), stroke: hexA(cc, 0.55) }) + 10;
+    if (c.race) px += pill(c.race, px, 146, { color: c.race === 'Asmodian' ? '#f472b6' : '#7dd3fc', fill: 'rgba(255,255,255,0.05)', stroke: 'rgba(255,255,255,0.12)' }) + 10;
+    if (c.server) pill(c.server, px, 146, { color: '#c3cbe0', fill: 'rgba(255,255,255,0.05)', stroke: 'rgba(255,255,255,0.12)' });
 
-    // Combat Power
-    g.fillStyle = '#9aa4c2'; g.font = F(900, 22); spaced('4px');
-    g.fillText('COMBAT POWER', 64, 296); spaced('0px');
-    g.fillStyle = '#ffffff'; g.font = F(900, 120);
+    // Combat Power: label, big number, tier pill, tier track with marker and scale
+    g.fillStyle = '#9aa4c2'; g.font = F(900, 20); spaced('5px');
+    g.fillText('COMBAT POWER', 64, 262); spaced('0px');
+    g.fillStyle = '#ffffff'; g.font = F(900, 118);
     const cpText = cp ? fmtInt(cp) : '—';
-    g.fillText(cpText, 60, 408);
+    g.save(); if (tier) { g.shadowColor = hexA(tc, 0.55); g.shadowBlur = 28; }
+    g.fillText(cpText, 58, 368); g.restore();
+    g.font = F(900, 118);
     if (tier) {
-      const px = 60 + g.measureText(cpText).width + 30;
-      g.font = F(900, 26); spaced('2px');
-      const label = tier.name.toUpperCase();
-      const tw = g.measureText(label).width + 40;
-      rrect(g, px, 346, tw, 50, 25); g.fillStyle = hexA(tc, 0.18); g.fill();
-      g.strokeStyle = hexA(tc, 0.7); g.lineWidth = 2; g.stroke();
-      g.fillStyle = tc; g.fillText(label, px + 20, 380); spaced('0px');
-      // Tier track
-      const tx = 64, ty = 432, tw2 = W - 128, seg = (tw2 - 3 * 10) / CP_TIERS.length;
+      spaced('2px');
+      pill(tier.name.toUpperCase(), 58 + g.measureText(cpText).width + 28, 306, { color: tc, fill: hexA(tc, 0.16), stroke: hexA(tc, 0.7), size: 24, weight: 900, padX: 20, h: 50 });
+      spaced('0px');
+      const tx = 64, ty = 398, tw = W - 128, gap = 8, seg = (tw - gap * (CP_TIERS.length - 1)) / CP_TIERS.length;
       CP_TIERS.forEach((t, i) => {
-        const sx = tx + i * (seg + 10);
-        rrect(g, sx, ty, seg, 14, 7); g.fillStyle = 'rgba(255,255,255,0.08)'; g.fill();
-        const f = i < tier.index ? 1 : i === tier.index ? tier.frac : 0;
-        if (f > 0) { rrect(g, sx, ty, Math.max(14, seg * f), 14, 7); g.fillStyle = t.color; g.fill(); }
+        const sx = tx + i * (seg + gap);
+        rrect(g, sx, ty, seg, 12, 6); g.fillStyle = 'rgba(255,255,255,0.08)'; g.fill();
+        const fr = i < tier.index ? 1 : i === tier.index ? tier.frac : 0;
+        if (fr > 0) { rrect(g, sx, ty, Math.max(12, seg * fr), 12, 6); g.fillStyle = t.color; g.fill(); }
       });
+      const mx = tx + tier.index * (seg + gap) + seg * tier.frac;
+      g.beginPath(); g.arc(mx, ty + 6, 11, 0, Math.PI * 2);
+      g.fillStyle = '#ffffff'; g.shadowColor = tc; g.shadowBlur = 16; g.fill(); g.shadowBlur = 0;
+      g.lineWidth = 4; g.strokeStyle = tc; g.stroke();
+      g.fillStyle = 'rgba(154,164,194,0.75)'; g.font = F(800, 16);
+      ['0', ...CP_TIERS.map((t, i) => fmtInt(t.max) + (i === CP_TIERS.length - 1 ? '+' : ''))].forEach((lab, i) => {
+        const lx = i === 0 ? tx : tx + i * (seg + gap) - gap / 2;
+        g.textAlign = i === 0 ? 'left' : i === CP_TIERS.length ? 'right' : 'center';
+        g.fillText(lab, i === CP_TIERS.length ? tx + tw : lx, ty + 38);
+      });
+      g.textAlign = 'left';
     }
 
-    // Stat boxes
+    // Stat tiles: coloured top edge, label and value
     const { days } = completionData(c);
     const st = streaks(days);
+    const dS = summary(c, 'daily'), wS = summary(c, 'weekly');
     const rmDone = ROADMAP.reduce((n, p) => n + p.tasks.filter(([key]) => c.roadmap.done[key]).length, 0);
     const pathDone = GEAR_PATH.reduce((n, s) => n + gpKeys(s).filter(key => c.path.done[key]).length, 0);
-    const one = summary(c, 'static');
-    const boxes = [
-      ['GEAR SCORE', k.gearScore ? fmtInt(k.gearScore) : '—', '#8aa4ff'],
+    const tiles = [
+      k.gearScore ? ['GEAR SCORE', fmtInt(k.gearScore), '#8aa4ff'] : ['TODAY', `${dS.done}/${dS.total}`, '#8aa4ff'],
+      ['THIS WEEK', `${wS.done}/${wS.total}`, '#c084fc'],
       ['DAY STREAK', `${st.current}`, '#34d399'],
-      ['ROADMAP', `${rmDone}/${ROADMAP_TOTAL}`, '#f5c96a'],
-      c.role === 'main' ? ['PROGRESSION', `${pathDone}/${GEAR_PATH_TOTAL}`, '#fb923c'] : ['ONE-TIME', `${one.done}/${one.total}`, '#2dd4bf'],
+      c.role === 'main' ? ['PROGRESSION', `${pathDone}/${GEAR_PATH_TOTAL}`, '#fb923c'] : ['ROADMAP', `${rmDone}/${ROADMAP_TOTAL}`, '#f5c96a'],
     ];
-    const bw = (W - 128 - 3 * 18) / 4;
-    boxes.forEach(([label, val, col], i) => {
-      const bx = 64 + i * (bw + 18), by = 474;
-      rrect(g, bx, by, bw, 100, 20); g.fillStyle = 'rgba(255,255,255,0.05)'; g.fill();
-      g.strokeStyle = 'rgba(255,255,255,0.08)'; g.lineWidth = 2; g.stroke();
-      g.fillStyle = col; g.font = F(900, 18); spaced('3px'); g.fillText(label, bx + 24, by + 36); spaced('0px');
-      g.fillStyle = '#ffffff'; g.font = F(900, 42); g.fillText(val, bx + 22, by + 82);
+    const bw = (W - 128 - 3 * 16) / 4, by = 462, bh = 92;
+    tiles.forEach(([label, val, col], i) => {
+      const bx = 64 + i * (bw + 16);
+      g.save(); rrect(g, bx, by, bw, bh, 18); g.clip();
+      g.fillStyle = 'rgba(255,255,255,0.045)'; g.fillRect(bx, by, bw, bh);
+      g.fillStyle = col; g.fillRect(bx, by, bw, 4);
+      g.restore();
+      rrect(g, bx, by, bw, bh, 18); g.strokeStyle = 'rgba(255,255,255,0.08)'; g.lineWidth = 2; g.stroke();
+      g.fillStyle = col; g.font = F(900, 16); spaced('3px'); g.fillText(label, bx + 22, by + 34); spaced('0px');
+      g.fillStyle = '#ffffff'; g.font = F(900, 38); g.fillText(val, bx + 20, by + 76);
     });
 
-    // Footer
-    g.fillStyle = 'rgba(154,164,194,0.8)'; g.font = F(700, 20);
-    g.fillText('Aion 2 Progress Tracker', 64, 606);
-    g.textAlign = 'right';
-    g.fillText(`${fmtDay.format(Date.now())}  ·  itsmoboiz.github.io/aion2-tracker`, W - 64, 606);
+    // Footer: divider, logo mark and name on the left, date and address on the right
+    g.fillStyle = 'rgba(255,255,255,0.07)'; g.fillRect(64, 572, W - 128, 1);
+    const lg = g.createLinearGradient(64, 584, 88, 608);
+    lg.addColorStop(0, '#9fb4ff'); lg.addColorStop(1, '#c084fc');
+    g.fillStyle = lg; g.beginPath(); g.moveTo(76, 582); g.lineTo(84, 596); g.lineTo(76, 610); g.lineTo(68, 596); g.closePath(); g.fill();
+    g.fillStyle = 'rgba(195,203,224,0.85)'; g.font = F(800, 19);
+    g.fillText('Aion 2 Progress Tracker', 96, 603);
+    g.textAlign = 'right'; g.fillStyle = 'rgba(154,164,194,0.8)'; g.font = F(700, 19);
+    g.fillText(`${fmtDay.format(Date.now())}  ·  itsmoboiz.github.io/aion2-tracker`, W - 64, 603);
+    g.textAlign = 'left';
     return cv;
   }
 
