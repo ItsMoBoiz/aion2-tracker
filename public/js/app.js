@@ -28,6 +28,9 @@
   const SCHEMA = 2; // 2: main/alt roles, Aion 2 task lists, task details (description, location, info)
   const HISTORY_LIMIT = 156; // about three years of weeks
   const HEAT_RANGES = [1, 2, 3]; // months shown in the completion history heatmap
+  // Spacetime Rift alert options (minutes before a portal opens; sounds are synthesised).
+  const RIFT_LEADS = [0, 1, 2, 5, 10];
+  const RIFT_SOUNDS = [['chime', 'Chime'], ['bell', 'Bell'], ['arcane', 'Arcane'], ['horn', 'War horn'], ['ping', 'Ping'], ['none', 'No sound']];
   const SIDE_TABS = [['roadmap', 'Roadmap'], ['history', 'History'], ['notes', 'Notes'], ['stats', 'Stats'], ['gear', 'Gear'], ['calc', 'Calculations']];
   // Personal notes. Limits keep the synced save well inside the storage's document size.
   const NOTES_MAX = 100;
@@ -35,11 +38,38 @@
   const KINDS = ['daily', 'weekly', 'static'];
   const KIND_LABEL = { daily: 'Daily', weekly: 'Weekly', static: 'One-time' };
 
-  const CLASSES = ['Gladiator', 'Templar', 'Assassin', 'Ranger', 'Sorcerer', 'Spiritmaster', 'Cleric', 'Chanter'];
+  // Aion 2 classes (Spiritmaster was renamed Elementalist). Descriptions follow the Fextralife wiki.
+  const CLASSES = ['Gladiator', 'Templar', 'Assassin', 'Ranger', 'Sorcerer', 'Elementalist', 'Cleric', 'Chanter'];
+  const CLASS_ALIASES = { spiritmaster: 'Elementalist' };
   const CLASS_COLORS = {
     Gladiator: '#f97316', Templar: '#fbbf24', Assassin: '#a78bfa', Ranger: '#34d399',
-    Sorcerer: '#60a5fa', Spiritmaster: '#22d3ee', Cleric: '#f0abfc', Chanter: '#fb7185',
+    Sorcerer: '#60a5fa', Elementalist: '#22d3ee', Cleric: '#f0abfc', Chanter: '#fb7185',
   };
+  const CLASS_INFO = {
+    Gladiator: 'Melee fighter using heavy weapons and AoE strikes.',
+    Templar: 'Frontline tank with strong defense and crowd control.',
+    Assassin: 'Stealthy melee DPS with burst damage.',
+    Ranger: 'Ranged attacker using bows and traps.',
+    Sorcerer: 'Master of elemental magic and ranged damage.',
+    Elementalist: 'Summoner who commands elemental spirits.',
+    Cleric: 'Healer with strong recovery and protective magic.',
+    Chanter: 'Hybrid support with buffs and healing.',
+  };
+  // Class emblems drawn for this app (48×48, stroked in the current colour).
+  const CLASS_EMBLEMS = {
+    Gladiator: '<path d="M24 3l3 6v21h-6V9z"/><path d="M15 30h18M24 33v8M21 44h6"/><path d="M17 8c-5 5-6 13-1 19M31 8c5 5 6 13 1 19"/><path d="M12 13c-3 3-4 8-2 12M36 13c3 3 4 8 2 12"/>',
+    Templar: '<path d="M24 4l15 5v12c0 10-6 17-15 23C15 38 9 31 9 21V9z"/><path d="M24 11l6 9-6 13-6-13z"/><path d="M15 12l9 4 9-4"/>',
+    Assassin: '<path d="M10 7l20 27M38 7L18 34"/><path d="M13 31l6-3M35 31l-6-3"/><path d="M16 36l-4 5M32 36l4 5"/><path d="M24 17l3 4-3 4-3-4z"/><path d="M24 30l4 6-4 7-4-7z"/>',
+    Ranger: '<path d="M33 5c-13 5-19 13-19 19s6 14 19 19"/><path d="M33 5v38"/><path d="M8 24h30"/><path d="M34 20l6 4-6 4"/><path d="M8 21l-3 3 3 3"/>',
+    Sorcerer: '<path d="M24 7l10 15-10 15-10-15z"/><path d="M24 16l4 6-4 6-4-6z"/><path d="M9 30a16 16 0 0 0 30 0"/><path d="M24 2v4M13 9l1.5 2M35 9l-1.5 2"/><path d="M24 42v4"/>',
+    Elementalist: '<circle cx="24" cy="24" r="17"/><path d="M24 4l4 15 15 5-15 5-4 15-4-15-15-5 15-5z"/><circle cx="24" cy="24" r="3"/>',
+    Cleric: '<path d="M16 10c-7 5-7 18 1 24h14c8-6 8-19 1-24"/><path d="M21 13v19M24 11v21M27 13v19"/><path d="M19 34l5 9 5-9"/><path d="M24 3l2 4-2 3-2-3z"/>',
+    Chanter: '<path d="M24 4c4 5 4 9 0 13-4-4-4-8 0-13z"/><path d="M8 22c0-7 7-10 16-10s16 3 16 10"/><circle cx="24" cy="28" r="8"/><path d="M11 30c1 7 6 12 13 13 7-1 12-6 13-13"/><path d="M24 36v8"/>',
+  };
+  const canonClass = cls => CLASS_ALIASES[String(cls || '').trim().toLowerCase()] || String(cls || '').trim();
+  const classEmblem = cls => (CLASS_EMBLEMS[cls]
+    ? `<svg class="emblem" viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${CLASS_EMBLEMS[cls]}</svg>`
+    : '');
   const RACES = ['Elyos', 'Asmodian'];
   // Aion 2 Europe servers by faction (paired: Siel ↔ Israphel, Nezekan ↔ Zikel, Vaizel ↔ Triniel, Kaisinel ↔ Lumiel).
   const SERVER_REGION = 'Europe';
@@ -292,7 +322,7 @@
   function defaultState() {
     return {
       schema: SCHEMA,
-      settings: { ...defaultSchedule(), theme: 'dark', scoring: defaultScoring() },
+      settings: { ...defaultSchedule(), theme: 'dark', riftAlert: normRiftAlert(), scoring: defaultScoring() },
       tasks: defaultTasks(),
       catalog: { seen: CATALOG.map(e => e.key) },
       characters: [],
@@ -338,6 +368,9 @@
     checkAll: '<path d="M2 12.5l4.5 4.5L15 8"/><path d="M10.5 16.5l.5.5L21.5 7"/>',
     book: '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M8 7h7M8 11h7"/>',
     rift: '<circle cx="12" cy="12" r="9"/><path d="M12 3c-3 3-3 15 0 18M12 3c3 3 3 15 0 18"/><circle cx="12" cy="12" r="2.2"/>',
+    bell: '<path d="M6 16v-5a6 6 0 1 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+    play: '<path d="M8 5v14l11-7z"/>',
+    mute: '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 5M22 9l-5 5"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
     flag: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
@@ -421,7 +454,7 @@
       id: String(c.id || uid()),
       name: String(c.name || 'Unnamed').slice(0, 40),
       role: c.role === 'main' ? 'main' : 'alt',
-      cls: String(c.cls || '').slice(0, 30),
+      cls: canonClass(c.cls).slice(0, 30), // e.g. Spiritmaster → Elementalist
       race: String(c.race || '').slice(0, 30),
       level: clamp(Math.round(num(c.level, 1)), 1, 999),
       server: String(c.server || '').slice(0, 40),
@@ -459,6 +492,7 @@
       settings: {
         tz: validTz(rs.tz) ? rs.tz : d.settings.tz,
         theme: rs.theme === 'light' ? 'light' : 'dark', // dark is the default look
+        riftAlert: normRiftAlert(rs.riftAlert),
         daily: normTime(rs.daily, d.settings.daily),
         weekly: {
           weekday: clamp(Math.round(num(rs.weekly && rs.weekly.weekday, 3)), 0, 6),
@@ -701,9 +735,14 @@
 
   /* ---------- 7. Rendering ---------- */
 
-  const classColor = c => CLASS_COLORS[c.cls] || '#8aa4ff';
+  const classColor = c => CLASS_COLORS[canonClass(c.cls)] || '#8aa4ff';
   const initials = name => (String(name).trim().match(/[\p{L}\p{N}]/gu) || ['?']).slice(0, 2).join('').toUpperCase();
-  const avatar = (c, size = '') => `<span class="avatar ${size}" style="--cc:${classColor(c)}" aria-hidden="true">${esc(initials(c.name))}</span>`;
+  // Class emblem on the class colour; initials when no (known) class is set.
+  const avatar = (c, size = '') => {
+    const em = classEmblem(canonClass(c.cls));
+    return `<span class="avatar ${size} ${em ? 'has-emblem' : ''}" style="--cc:${classColor(c)}" aria-hidden="true"
+      ${em ? `title="${esc(canonClass(c.cls))}"` : ''}>${em || esc(initials(c.name))}</span>`;
+  };
   const metaLine = c => [`Lv ${c.level}`, c.cls, c.race, c.server].filter(Boolean).map(esc).join(' <i>·</i> ');
 
   function renderShell() {
@@ -729,7 +768,7 @@
             <span class="rc-in">in <b data-countdown="weekly"></b></span>
           </div>
           <button class="reset-chip rift-chip" id="rift-chip" data-action="open-rift" title="Spacetime Rift portal schedule">
-            <span class="rc-label">${icon('rift')} <span data-rift="label">Next portal</span></span>
+            <span class="rc-label">${icon('rift')} <span data-rift="label">Next portal</span><span class="rift-bell" data-rift="bell" title="Portal alert is on" hidden>${icon('bell')}</span></span>
             <span class="rc-when" data-rift="when"></span>
             <span class="rc-in"><span data-rift="prefix">in</span> <b data-rift="in"></b></span>
           </button>
@@ -1098,7 +1137,8 @@
         <div class="stepper">
           <button class="step" data-action="dec" ${ds} ${p === 0 ? 'disabled' : ''} aria-label="Remove one">${icon('minus')}</button>
           <button class="step" data-action="inc" ${ds} ${done ? 'disabled' : ''} aria-label="Add one">${icon('plus')}</button>
-          <button class="step max" data-action="max" ${ds} ${done ? 'disabled' : ''}>Max</button>
+          <button class="step complete-all ${done ? 'is-done' : ''}" data-action="all-or-none" ${ds} aria-pressed="${done}"
+            title="${done ? 'Clear all runs' : `Mark all ${t.count} done`}" aria-label="${done ? `Clear ${esc(t.name)}` : `Mark all ${t.count} ${esc(t.name)} done`}">${icon(done ? 'check' : 'checkAll')}</button>
         </div>`;
     }
 
@@ -1150,8 +1190,8 @@
           </div>
           <div class="hero-actions">
             ${c.role === 'main' ? '' : `<button class="btn ghost sm" data-action="make-main" data-char="${esc(c.id)}">${icon('crown')}Make main</button>`}
-            <button class="btn ghost sm" data-action="edit-char" data-char="${esc(c.id)}">${icon('edit')}Edit</button>
-            <button class="btn ghost sm danger-text" data-action="delete-char" data-char="${esc(c.id)}">${icon('trash')}Delete</button>
+            <button class="hero-icon" data-action="edit-char" data-char="${esc(c.id)}" title="Edit character" aria-label="Edit ${esc(c.name)}">${icon('edit')}</button>
+            <button class="hero-icon danger" data-action="delete-char" data-char="${esc(c.id)}" title="Delete character" aria-label="Delete ${esc(c.name)}">${icon('trash')}</button>
           </div>
         </article>
         ${boardHTML(c, 'daily')}
@@ -1613,9 +1653,156 @@
       $('[data-rift="when"]', chip).textContent = r.open ? 'Enter now' : fmtClock.format(r.next);
       $('[data-rift="prefix"]', chip).textContent = r.open ? 'closes in' : 'in';
       $('[data-rift="in"]', chip).textContent = fmtDur((r.open ? r.open + RIFT_ENTRY_MS : r.next) - now);
+      $('[data-rift="bell"]', chip).hidden = !state.settings.riftAlert.on;
     }
     const box = $('#rift-live');
     if (box) paintRift(box, r, now);
+    checkRiftAlert(r, now);
+  }
+
+  /* Portal alerts: a sound, an in-page message, a flashing tab title and (optionally) a desktop
+     notification, on time or a few minutes before a portal opens. Works while the page is open in
+     a tab, even in the background. Sounds are synthesised, so there are no audio files. */
+  const RIFT_ALERTED_KEY = 'aion2-rift-alerted'; // last portal alerted for, shared by open tabs
+
+  function normRiftAlert(a) {
+    a = isObj(a) ? a : {};
+    return {
+      on: !!a.on,
+      lead: RIFT_LEADS.includes(num(a.lead, 2)) ? num(a.lead, 2) : 2,
+      sound: RIFT_SOUNDS.some(([k]) => k === a.sound) ? a.sound : 'chime',
+      volume: clamp(num(a.volume, 0.7), 0, 1),
+      desktop: !!a.desktop,
+    };
+  }
+
+  let audioCtx = null;
+  function getAudio() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    if (!audioCtx) audioCtx = new AC();
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    return audioCtx;
+  }
+  // Browsers only allow sound after the person has interacted with the page once; unlock early.
+  document.addEventListener('pointerdown', () => { if (state.settings.riftAlert.on) getAudio(); }, { passive: true });
+
+  function tone(ac, out, { type = 'sine', freq, freqEnd, start, dur, gain = 0.3, attack = 0.01, lowpass }) {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, start);
+    if (freqEnd) o.frequency.exponentialRampToValueAtTime(freqEnd, start + dur);
+    g.gain.setValueAtTime(0.0001, start);
+    g.gain.exponentialRampToValueAtTime(gain, start + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    let node = o;
+    if (lowpass) {
+      const f = ac.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = lowpass;
+      o.connect(f);
+      node = f;
+    }
+    node.connect(g).connect(out);
+    o.start(start);
+    o.stop(start + dur + 0.05);
+  }
+
+  function playRiftSound(name, volume) {
+    if (name === 'none') return;
+    const ac = getAudio();
+    if (!ac) return;
+    const out = ac.createGain();
+    out.gain.value = volume;
+    out.connect(ac.destination);
+    const t = ac.currentTime + 0.03;
+    const T = o => tone(ac, out, o);
+    if (name === 'chime') {
+      [1046.5, 1318.5, 1568, 2093].forEach((f, i) => T({ freq: f, start: t + i * 0.15, dur: 1.1, gain: 0.28 }));
+    } else if (name === 'bell') {
+      [[880, 0.35], [1760, 0.1], [2637, 0.05], [1318.5, 0.08]].forEach(([f, g]) => T({ freq: f, start: t, dur: 2.4, gain: g, attack: 0.004 }));
+      [[880, 0.28], [1760, 0.08]].forEach(([f, g]) => T({ freq: f, start: t + 0.7, dur: 2.2, gain: g, attack: 0.004 }));
+    } else if (name === 'arcane') {
+      T({ type: 'triangle', freq: 294, freqEnd: 880, start: t, dur: 1, gain: 0.22, attack: 0.08 });
+      T({ type: 'sine', freq: 587, freqEnd: 1760, start: t + 0.1, dur: 1.1, gain: 0.12, attack: 0.1 });
+      [1568, 2093, 2637, 3136].forEach((f, i) => T({ freq: f, start: t + 0.55 + i * 0.08, dur: 0.7, gain: 0.07 }));
+    } else if (name === 'horn') {
+      T({ type: 'sawtooth', freq: 196, start: t, dur: 0.75, gain: 0.2, attack: 0.09, lowpass: 900 });
+      T({ type: 'sawtooth', freq: 261.6, start: t + 0.6, dur: 1.3, gain: 0.22, attack: 0.09, lowpass: 1200 });
+      T({ type: 'sawtooth', freq: 130.8, start: t + 0.6, dur: 1.3, gain: 0.1, attack: 0.09, lowpass: 700 });
+    } else if (name === 'ping') {
+      T({ freq: 1760, start: t, dur: 0.3, gain: 0.3 });
+      T({ freq: 2349, start: t + 0.2, dur: 0.45, gain: 0.3 });
+    }
+  }
+
+  function checkRiftAlert(r, now) {
+    const a = state.settings.riftAlert;
+    if (!a.on) return;
+    let last = 0;
+    try { last = num(localStorage.getItem(RIFT_ALERTED_KEY)); } catch (e) { /* storage blocked */ }
+    for (const s of [r.open, r.next]) {
+      if (!s || s <= last) continue;
+      if (now >= s - a.lead * 60e3 && now < s + RIFT_ENTRY_MS) {
+        try { localStorage.setItem(RIFT_ALERTED_KEY, String(s)); } catch (e) { /* ignore */ }
+        fireRiftAlert(s, now, a);
+        return;
+      }
+    }
+  }
+
+  let titleTimer = 0;
+  function fireRiftAlert(s, now, a, isTest) {
+    const mins = Math.ceil((s - now) / 60e3);
+    const msg = s > now
+      ? `Spacetime Rift opens in ${mins} minute${mins === 1 ? '' : 's'} (${fmtClock.format(s)}).`
+      : 'Spacetime Rift portal is OPEN. Enter within 5 minutes!';
+    playRiftSound(a.sound, a.volume);
+    toast(`${isTest ? 'Test: ' : ''}${msg}`, { type: 'ok', timeout: 20000, action: { label: 'Open', fn: openRift } });
+    if (a.desktop && 'Notification' in window && Notification.permission === 'granted') {
+      try {
+        const n = new Notification(isTest ? 'Spacetime Rift (test)' : 'Spacetime Rift', { body: msg, tag: 'aion2-rift', icon: 'assets/logo.svg' });
+        n.onclick = () => { window.focus(); n.close(); openRift(); };
+      } catch (e) { /* some browsers only allow notifications from a service worker */ }
+    }
+    if (!isTest) {
+      const base = document.title.replace(/^\(!\) .*? · /, '');
+      document.title = `(!) ${s > now ? 'Rift opening soon' : 'Rift is open'} · ${base}`;
+      clearTimeout(titleTimer);
+      titleTimer = setTimeout(() => { document.title = base; }, 5 * 60e3);
+    }
+  }
+
+  function riftAlertHTML() {
+    const a = state.settings.riftAlert;
+    return `<header class="ra-head">
+        <span class="ra-title">${icon('bell')}Portal alert</span>
+        <label class="switch" title="${a.on ? 'Turn alerts off' : 'Turn alerts on'}">
+          <input type="checkbox" id="ra-on" ${a.on ? 'checked' : ''} aria-label="Portal alert"><span></span>
+        </label>
+      </header>
+      <div class="ra-body">
+        <div class="ra-row"><span class="ra-label">Before</span>
+          <div class="range-pills ra-lead" role="radiogroup" aria-label="When to alert">
+            ${RIFT_LEADS.map(l => `<button type="button" role="radio" class="range-pill ${l === a.lead ? 'is-active' : ''}" aria-checked="${l === a.lead}" data-m="ra-lead" data-value="${l}"
+              title="${l === 0 ? 'When the portal opens' : `${l} minute${l === 1 ? '' : 's'} before it opens`}">${l === 0 ? 'On time' : `${l} min`}</button>`).join('')}
+          </div>
+        </div>
+        <div class="ra-row"><span class="ra-label">Sound</span>
+          <div class="ra-sounds" role="radiogroup" aria-label="Alert sound">
+            ${RIFT_SOUNDS.map(([k, l]) => `<button type="button" role="radio" class="ra-sound ${k === a.sound ? 'is-active' : ''}" aria-checked="${k === a.sound}" data-m="ra-sound" data-value="${k}"
+              title="${k === 'none' ? 'No sound' : `Select and preview ${l}`}">${icon(k === 'none' ? 'mute' : 'play')}${l}</button>`).join('')}
+          </div>
+        </div>
+        <div class="ra-row"><span class="ra-label">Volume</span>
+          <input type="range" id="ra-vol" class="range ra-vol" min="0" max="1" step="0.05" value="${a.volume}" aria-label="Alert volume" ${a.sound === 'none' ? 'disabled' : ''}>
+        </div>
+        <label class="check-row ra-desktop"><input type="checkbox" id="ra-desktop" ${a.desktop ? 'checked' : ''}> Also show a desktop notification</label>
+        <div class="ra-foot">
+          <button type="button" class="btn ghost sm" data-m="ra-test">${icon('bell')}Test alert</button>
+          <span class="fine">Alerts work while this page is open in a tab (it can be in the background).</span>
+        </div>
+      </div>`;
   }
 
   function paintRift(box, r, now) {
@@ -1645,7 +1832,14 @@
   }
 
   function openRift() {
-    openModal({
+    const saveAlert = patch => {
+      Object.assign(state.settings.riftAlert, patch);
+      save();
+      const box = $('#rift-alerts', m);
+      if (box) { box.className = `rift-alerts ${state.settings.riftAlert.on ? 'is-on' : ''}`; box.innerHTML = riftAlertHTML(); }
+      updateRift(Date.now());
+    };
+    const m = openModal({
       title: 'Spacetime Rift',
       body: `<div id="rift-live">
           <div class="rift-status">
@@ -1653,11 +1847,50 @@
             <div class="rs-text"><b class="rs-title"></b><small class="rs-sub"></small></div>
             <div class="rs-count"><small class="rs-timer-label"></small><b class="rs-timer"></b></div>
           </div>
+          <section class="rift-alerts ${state.settings.riftAlert.on ? 'is-on' : ''}" id="rift-alerts">${riftAlertHTML()}</section>
           <p class="fine rift-note">Portals open every 3 hours at 02:00, 05:00, 08:00, 11:00, 14:00, 17:00, 20:00 and 23:00 (GMT+3 server time),
             shown below in your own time. You can only enter during the <b>first 5 minutes</b>; the rift then stays active for the rest of the hour.</p>
           <ul class="rift-list"></ul>
         </div>`,
       footer: '<button class="btn primary" data-m="close">Done</button>',
+      onChange(e) {
+        const t = e.target;
+        if (t.id === 'ra-on') {
+          if (t.checked) getAudio(); // this click lets the browser play the alert sound later
+          saveAlert({ on: t.checked });
+          if (t.checked) toast(`Portal alert on: ${state.settings.riftAlert.lead ? `${state.settings.riftAlert.lead} min before` : 'on time'}.`, { type: 'ok' });
+        } else if (t.id === 'ra-vol') {
+          saveAlert({ volume: num(t.value, 0.7) });
+          playRiftSound(state.settings.riftAlert.sound, state.settings.riftAlert.volume);
+        } else if (t.id === 'ra-desktop') {
+          if (!t.checked) { saveAlert({ desktop: false }); return; }
+          if (!('Notification' in window)) {
+            t.checked = false;
+            toast('This browser doesn\'t support desktop notifications.', { type: 'bad' });
+            return;
+          }
+          Notification.requestPermission().then(p => {
+            if (p === 'granted') saveAlert({ desktop: true });
+            else {
+              saveAlert({ desktop: false });
+              toast('Desktop notifications are blocked for this site. Allow them in your browser\'s site settings, then try again.', { type: 'bad', timeout: 9000 });
+            }
+          });
+        }
+      },
+      actions: {
+        'ra-lead'(b) { saveAlert({ lead: num(b.dataset.value, 2) }); },
+        'ra-sound'(b) {
+          saveAlert({ sound: b.dataset.value });
+          playRiftSound(b.dataset.value, state.settings.riftAlert.volume);
+          const again = $(`[data-m="ra-sound"][data-value="${b.dataset.value}"]`, m);
+          if (again) again.focus();
+        },
+        'ra-test'() {
+          const r = riftState();
+          fireRiftAlert(r.next, Date.now(), state.settings.riftAlert, true);
+        },
+      },
     });
     updateRift(Date.now());
   }
@@ -1756,7 +1989,16 @@
           </label>
           <p class="fine role-note" ${roleNote(v.role) ? '' : 'hidden'}>${roleNote(v.role)}</p>
         </fieldset>
-        <label class="field"><span>Class</span><input name="cls" list="class-list" maxlength="30" value="${esc(v.cls)}" placeholder="e.g. Templar"></label>
+        <fieldset class="class-pick span-2">
+          <legend>Class</legend>
+          <div class="class-grid">
+            ${CLASSES.map(k => `<label class="class-opt" style="--cc:${CLASS_COLORS[k]}" title="${esc(CLASS_INFO[k])}">
+              <input type="radio" name="cls" value="${k}" ${canonClass(v.cls) === k ? 'checked' : ''}>
+              <span class="co-card"><span class="co-emblem">${classEmblem(k)}</span><b>${k}</b><small>${esc(CLASS_INFO[k])}</small></span>
+            </label>`).join('')}
+          </div>
+          ${v.cls && !CLASSES.includes(canonClass(v.cls)) ? `<label class="check-row"><input type="radio" name="cls" value="${esc(v.cls)}" checked> Keep "${esc(v.cls)}"</label>` : ''}
+        </fieldset>
         <label class="field"><span>Race / faction</span>
           <select name="race" id="char-race">
             <option value="">Choose a faction</option>
@@ -1767,7 +2009,6 @@
         <label class="field"><span>Server <small class="region">${SERVER_REGION}</small></span>
           <select name="server" id="char-server">${serverOptions(RACES.includes(v.race) ? v.race : '', v.server)}</select></label>
         <label class="field span-2"><span>Notes</span><textarea name="notes" rows="2" maxlength="500" placeholder="Optional">${esc(v.notes)}</textarea></label>
-        <datalist id="class-list">${CLASSES.map(x => `<option value="${x}">`).join('')}</datalist>
       </form>`,
       footer: `<button type="button" class="btn ghost" data-m="cancel">Cancel</button>
                <button type="submit" form="char-form" class="btn primary">${isNew ? 'Add character' : 'Save changes'}</button>`,
@@ -1829,33 +2070,58 @@
     });
   }
 
+  // Deleting needs a deliberate confirmation: the button only works once DELETE has been typed.
   function deleteCharacter(c) {
-    confirmModal({
+    const notes = notesFor(c.id).length;
+    const m = openModal({
       title: `Delete ${c.name}?`,
-      message: `This removes <b>${esc(c.name)}</b> with their checklists, stats and gear. Weeks already archived in History are kept.`,
-      confirmLabel: 'Delete character',
-      danger: true,
-      onConfirm() {
-        const index = state.characters.indexOf(c);
-        const backup = clone(c);
-        state.characters.splice(index, 1);
-        delete statsDrafts[c.id];
-        state.ui.active = 'overview';
-        save();
-        render();
-        toast(`${c.name} deleted.`, {
-          timeout: 10000,
-          action: {
-            label: 'Undo',
-            fn() {
-              state.characters.splice(Math.min(index, state.characters.length), 0, normChar(backup));
-              processResets();
-              state.ui.active = backup.id;
-              save();
-              render();
-            },
-          },
-        });
+      size: 'sm',
+      body: `<div class="danger-box">${icon('alert')}
+          <div><p><b>This permanently removes ${esc(c.name)}</b>${c.role === 'main' ? ' (your main)' : ''}, including:</p>
+          <ul>
+            <li>Daily, weekly and one-time progress</li>
+            <li>Leveling roadmap progress</li>
+            <li>Stats, gear and Combat Power</li>
+          </ul>
+          <p class="fine">Weeks already archived in History are kept.${notes ? ` ${notes} note${notes === 1 ? '' : 's'} for this character will move to General.` : ''}</p></div>
+        </div>
+        <label class="field"><span>Type <b>DELETE</b> to confirm</span>
+          <input id="delete-confirm" autocomplete="off" spellcheck="false" autofocus></label>`,
+      footer: `<button class="btn ghost" data-m="cancel">Cancel</button>
+               <button class="btn danger" data-m="confirm" id="delete-go" disabled>${icon('trash')}Delete character</button>`,
+      onInput() {
+        $('#delete-go', m).disabled = $('#delete-confirm', m).value.trim().toUpperCase() !== 'DELETE';
+      },
+      actions: {
+        submit() { /* Enter in the field shouldn't delete by itself */ },
+        confirm() {
+          if ($('#delete-confirm', m).value.trim().toUpperCase() !== 'DELETE') return;
+          closeModal(m);
+          removeCharacter(c);
+        },
+      },
+    });
+  }
+
+  function removeCharacter(c) {
+    const index = state.characters.indexOf(c);
+    const backup = clone(c);
+    state.characters.splice(index, 1);
+    delete statsDrafts[c.id];
+    state.ui.active = 'overview';
+    save();
+    render();
+    toast(`${c.name} deleted.`, {
+      timeout: 10000,
+      action: {
+        label: 'Undo',
+        fn() {
+          state.characters.splice(Math.min(index, state.characters.length), 0, normChar(backup));
+          processResets();
+          state.ui.active = backup.id;
+          save();
+          render();
+        },
       },
     });
   }
@@ -2622,9 +2888,9 @@
           ${chars.map(x => {
             const done = x.weekly.filter(t => t.prog >= t.count).length;
             const pct = x.weekly.length ? Math.round((done / x.weekly.length) * 100) : 0;
-            return `<div class="wc" style="--cc:${CLASS_COLORS[x.cls] || '#8aa4ff'}">
+            return `<div class="wc" style="--cc:${classColor(x)}">
               <div class="wc-head">
-                <span class="avatar sm" aria-hidden="true">${esc(initials(x.name))}</span>
+                ${avatar({ name: x.name, cls: x.cls }, 'sm')}
                 <div><b>${esc(x.name)}</b><small>${[`Lv ${x.level}`, x.cls].filter(Boolean).map(esc).join(' · ')}</small></div>
                 <span class="wc-cp" title="${num(x.gameCp) ? 'Combat Power' : 'Calculated score'} when archived">${num(x.gameCp) ? `CP ${fmtInt(x.gameCp)}` : `Score ${fmtInt(x.cp)}`}</span>
               </div>
@@ -3143,6 +3409,8 @@
       el.dataset.state = kind;
       el.textContent = text || SYNC_TEXT[kind] || '';
     }
+    const avatarBtn = $('#account-btn');
+    if (avatarBtn) avatarBtn.dataset.sync = kind; // colours the small dot on the avatar
     const foot = $('#app-foot');
     if (foot) foot.innerHTML = `${storageSummary()} Back it up from Settings &rarr; Data.`;
   }
@@ -3425,8 +3693,9 @@
       : `<span class="account-pic ${size}">${esc(initials(u.displayName || u.email || '?'))}</span>`);
     slot.innerHTML = `
       <button class="account-btn" id="account-btn" data-action="account" aria-haspopup="menu" aria-expanded="false"
-        aria-controls="account-menu" title="${esc(u.email || u.displayName || 'Account')}">
-        ${pic('')}<span class="account-name">${esc((u.displayName || u.email || 'Account').split(' ')[0])}</span>${icon('down')}
+        aria-controls="account-menu" data-sync="${esc(($('#sync-status') || {}).dataset ? $('#sync-status').dataset.state : 'off')}"
+        title="${esc(u.displayName || u.email || 'Account')}" aria-label="Account: ${esc(u.displayName || u.email || '')}">
+        ${pic('')}<i class="account-dot" aria-hidden="true"></i>
       </button>
       <div class="account-menu" id="account-menu" role="menu" aria-label="Account" hidden>
         <div class="am-head">
