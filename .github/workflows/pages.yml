@@ -1,4 +1,6 @@
-# Publishes public/ to GitHub Pages on every push to main, and every hour to refresh the news.
+# Publishes public/ to GitHub Pages on every push to main.
+# Every hour it also checks the official AION 2 announcements and redeploys only when there is a new
+# or edited one (otherwise the run stops after the check).
 # Each deploy stamps a build id into index.html (so browsers fetch fresh CSS/JS)
 # and into version.json (so open pages notice the new version and reload),
 # and saves the official AION 2 announcements into public/news/.
@@ -8,7 +10,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: '17 * * * *'   # hourly, for fresh news (GitHub may delay scheduled runs a little)
+    - cron: '0 * * * *'   # news check every hour on the hour (GitHub may start scheduled runs a few minutes late)
   workflow_dispatch:
 
 permissions:
@@ -16,9 +18,10 @@ permissions:
   pages: write
   id-token: write
 
+# Runs queue instead of cancelling each other, so a news check never stops a deploy of your changes.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -29,21 +32,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - id: pages
+        uses: actions/configure-pages@v5
+
+      # Pushes and manual runs always deploy. Scheduled runs compare with the news already on the
+      # site and only continue when it changed.
       - name: Save official news
+        id: news
         continue-on-error: true
-        run: python3 tools/fetch_news.py
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            python3 tools/fetch_news.py --check "${{ steps.pages.outputs.base_url }}"
+          else
+            python3 tools/fetch_news.py
+          fi
 
       - name: Stamp build id
+        if: github.event_name != 'schedule' || steps.news.outputs.changed == 'true'
         run: |
           BUILD="${GITHUB_SHA::12}"
           sed -i "s/__BUILD__/${BUILD}/g" public/index.html
           printf '{"build":"%s"}\n' "$BUILD" > public/version.json
 
-      - uses: actions/configure-pages@v5
-
-      - uses: actions/upload-pages-artifact@v3
+      - if: github.event_name != 'schedule' || steps.news.outputs.changed == 'true'
+        uses: actions/upload-pages-artifact@v3
         with:
           path: public
 
       - id: deployment
+        if: github.event_name != 'schedule' || steps.news.outputs.changed == 'true'
         uses: actions/deploy-pages@v4

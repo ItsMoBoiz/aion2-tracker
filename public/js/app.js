@@ -198,6 +198,81 @@
   ];
   const ROADMAP_TOTAL = ROADMAP.reduce((n, p) => n + p.tasks.length, 0);
 
+  /* Gear progression path (character page, under one-time content): the recommended order from
+     Level 45 to Sanctuary: Ludra, grouped by Gear Score. Keys are permanent; ticks are stored per
+     character as c.path.done[key]. A step with `subs` is done when all of its sub-steps are.
+     `who`: 'main' or 'alts' (which character the step is meant for); `ongoing`: a habit to keep up.
+     *Text* is shown in bold. */
+  const GEAR_PATH = [
+    { key: 's1', gs: '~850–950 GS', name: 'Level 45 and alts', steps: [
+      { k: 'gp.lvl45', who: 'main', text: 'Reach *Level 45* by progressing the main story quest', note: 'You should be around 850–950 GS when you get there.' },
+      { k: 'gp.alts22', who: 'alts', text: 'Create 1–3 alts and take them to *Level 22* with the main story, stopping right before *Krao Cave*',
+        note: 'Unlocks the Expedition menu, so the alts start gathering Odyle Energy.' },
+    ] },
+    { key: 's2', gs: '1000 → ~1500 GS', name: 'Story, quests and open world', steps: [
+      { k: 'gp.clash-runes', who: 'main', text: 'Reach *1000 GS*, then do the 2 side quests that reward a *Clash Rune Chest*',
+        note: 'Each equipped Clash Rune gives 40 GS. You may need a few more side quests that reward blue accessories first.' },
+      { k: 'gp.finish-msq', who: 'main', text: 'Finish the main story quest and enhance the yellow weapon it gives to *+5*' },
+      { k: 'gp.duty', who: 'main', ongoing: true, text: 'Complete 5 *Duty* missions every day',
+        note: 'Reward priority: Enhancement Stones, Pet Crystals, Abyss Points, Cube Keys.' },
+      { k: 'gp.sealed', text: 'Complete all *Sealed Dungeons*', note: 'Kinah, Daevanion Points, Skill Points and other useful resources.' },
+      { k: 'gp.strongholds', text: 'Complete all *Strongholds*', note: 'Gives the materials to enhance your belt.' },
+      { k: 'gp.feathers', text: 'Collect about 190 *Feathers* and deliver them', note: 'Gives the materials to enhance your amulet. Collect the rest over time.' },
+      { k: 'gp.green-quests', text: 'Complete every green side quest', note: 'High-tier blue accessories, Daevanion Points and Skill Points.' },
+      { k: 'gp.rift-quests', text: 'Every 3 hours, enter the *Dimensional Rift* to finish the side quests on the opposite faction\'s map',
+        note: 'Takes about 3 rifts.' },
+      { k: 'gp.shugo', ongoing: true, text: 'Do *Shugos* and *Invasions* whenever they appear next to the minimap' },
+      { k: 'gp.morph', text: 'Use *Substance Morph* to take your belt and amulet to yellow grade' },
+      { k: 'gp.ascension', text: 'Complete the next *Ascension Quest* and enhance its yellow bracelet to *+5*',
+        note: 'You should now be around 1500 GS, which unlocks 2-star Conquest Expedition.' },
+    ] },
+    { key: 's3', gs: '~1500 GS', name: 'Vakron Sky Island', desc: 'Spend Odyle Energy here for tier 2 yellow armor.', steps: [
+      { k: 'gp.vakron', text: 'Farm *Vakron Sky Island* with Odyle Energy', subs: [
+        { k: 'gp.vakron.explore', text: 'Clear *Exploration* mode 3 times and grab the loot cube at the end',
+          note: 'This unlocks the condensed cube. Don\'t claim it yet: keep it for whichever piece you\'re still missing.' },
+        { k: 'gp.vakron.conquest', text: 'Repeat *Conquest* mode and aim for at least 4 gear pieces before the condensed chest',
+          note: 'The chest unlocks after 21 clears and gives 2 guaranteed drops for missing pieces.' },
+        { k: 'gp.vakron.enhance', text: 'Enhance the new gear pieces to *+5*' },
+      ] },
+    ] },
+    { key: 's4', gs: 'Alts to ~1400 GS', name: 'Alts catch up', desc: 'Work on your alts while Odyle Energy refills on your main.', steps: [
+      { k: 'gp.alts45', who: 'alts', text: 'Take your alts to *Level 45*' },
+      { k: 'gp.alts1400', who: 'alts', text: 'Take your alts to about *1400 GS* by repeating the steps from Clash Runes to the Ascension Quest',
+        note: 'Run 2-star Conquest Expedition every day.' },
+    ] },
+    { key: 's5', gs: '~1500 → 1900 GS', name: 'Weeklies and Abyss', steps: [
+      { k: 'gp.command', who: 'main', ongoing: true, text: 'Complete 12 *Command Contracts* every week',
+        note: 'Priority: Enhancement Stones, Pet Crystals, Abyss Points, Cube Keys.' },
+      { k: 'gp.abyss-contracts', ongoing: true, text: 'Complete the available weekly *Abyss Contracts*, killing mobs and collecting Feathers while you\'re there',
+        note: 'Priority: Stigma Shards, Abyss Points, Pet Crystals. Feathers give Abyss Points and PvP Daevanion Crystals.' },
+      { k: 'gp.abyss-shop', text: 'At about *200k Abyss Points*, buy 2 tier 1 rings, 2 tier 1 earrings and 1 tier 1 necklace, then enhance them to *+5*',
+        note: 'Your weapon and accessories are now sorted. Armor comes next.' },
+    ] },
+    { key: 's6', gs: '~1900 → 2200+ GS', name: 'Optimize your gear', desc: 'About 7–10 days from the start.', steps: [
+      { k: 'gp.optimize', text: 'At about 1800–1900 GS, optimize every piece of gear', subs: [
+        { k: 'gp.opt.manastones', text: 'Roll *Mana Stones* on every piece', note: '1 or 2 green stats is enough.' },
+        { k: 'gp.opt.theostone', text: 'Apply a *Theostone* to your weapon and guard' },
+        { k: 'gp.opt.plus7', text: 'Push every piece to *+7*, but keep Clash Runes at *+2*', note: 'Clash Runes can break if an upgrade fails.' },
+      ] },
+      { k: 'gp.downtime', ongoing: true, text: 'While you wait: farm pets, work on *Genus Insight*, check the *Pantheon*, clear the highest *Nightmare* and buy *Daevanion Crystals* for the PvE board',
+        note: 'When you run low on Enhancement Stones, run the daily dungeon that gives them. Otherwise take pets as rewards.' },
+      { k: 'gp.2200', text: 'Reach *2200+ GS* with gear at +7 to +8 (weapon maybe +10, Clash Runes +2 to +3)',
+        note: 'Unlocks 3-star Conquest Expedition, the best non-crafted gear in Season 1.' },
+    ] },
+    { key: 's7', gs: '2700 → 2800+ GS', name: 'Endgame Combat Power', desc: 'The focus now shifts to increasing Combat Power.', steps: [
+      { k: 'gp.2700', text: 'Push your main to *2700+ GS* to unlock stage 4 *Transcendence*', subs: [
+        { k: 'gp.cp.fire-temple', text: 'Run *Fire Temple* for the best PvE accessories' },
+        { k: 'gp.cp.crafting', text: 'Level up crafting for the best weapon' },
+        { k: 'gp.cp.arcana', text: 'Farm Transcendence stage 2 or 3 for *Arcana Cards*' },
+        { k: 'gp.cp.2700', text: 'Reach *2700+ GS*' },
+      ] },
+      { k: 'gp.ludra', text: 'Reach *2800+ GS* to unlock *Sanctuary: Ludra*' },
+    ] },
+  ];
+  // Every tickable key in a stage (sub-steps instead of their parent).
+  const gpKeys = s => s.steps.flatMap(st => (st.subs ? st.subs.map(x => x.k) : [st.k]));
+  const GEAR_PATH_TOTAL = GEAR_PATH.reduce((n, s) => n + gpKeys(s).length, 0);
+
   /* Important Progression Rules (information only). Lines with warn: true are highlighted. */
   const GUIDE = [
     { key: 'pet', icon: 'paw', title: 'Pet / Mount',
@@ -461,6 +536,7 @@
       weekly: { ...period(c.weekly), log: Array.isArray(c.weekly && c.weekly.log) ? c.weekly.log : [] },
       static: { prog: isObj(c.static && c.static.prog) ? c.static.prog : {} }, // one-time: never resets
       roadmap: { done: isObj(c.roadmap && c.roadmap.done) ? c.roadmap.done : {} }, // leveling roadmap ticks
+      path: { done: isObj(c.path && c.path.done) ? c.path.done : {} }, // gear progression path ticks
     };
   }
 
@@ -1034,6 +1110,14 @@
   // Remember which phases are open when someone opens/closes them ("toggle" doesn't bubble).
   document.addEventListener('toggle', e => {
     const d = e.target;
+    if (d.matches && d.matches('.gp-stage')) {
+      const set = gpOpen.get(d.dataset.char) || new Set();
+      if (d.open) set.add(d.dataset.phase); else set.delete(d.dataset.phase);
+      gpOpen.set(d.dataset.char, set);
+      const btn = $(`[data-action="gp-expand"][data-char="${d.dataset.char}"]`);
+      if (btn) btn.setAttribute('aria-label', set.size === GEAR_PATH.length ? 'Collapse all stages' : 'Expand all stages');
+      return;
+    }
     if (!d.matches || !d.matches('.rm-phase')) return;
     const set = rmOpen.get(d.dataset.char) || new Set();
     if (d.open) set.add(d.dataset.phase); else set.delete(d.dataset.phase);
@@ -1041,6 +1125,92 @@
     const btn = $(`[data-action="rm-expand"][data-char="${d.dataset.char}"]`);
     if (btn) btn.innerHTML = `${icon('down')}${set.size === ROADMAP.length ? 'Collapse all' : 'Expand all'}`;
   }, true);
+
+  /* Gear progression path board (character page, under one-time content). Stages start closed. */
+  const gpOpen = new Map(); // charId -> Set of open stage keys (kept while the page is open)
+  const gpText = s => esc(s).replace(/\*(.+?)\*/g, '<b>$1</b>');
+  const gpPlain = s => s.replace(/\*/g, '');
+  const GP_WHO = { main: ['crown', 'Main'], alts: ['user', 'Alts'] };
+
+  function gearPathHTML(c) {
+    const done = k => !!c.path.done[k];
+    const infos = GEAR_PATH.map(s => {
+      const keys = gpKeys(s);
+      const n = keys.filter(done).length;
+      return { s, n, total: keys.length, complete: n === keys.length };
+    });
+    const activeIdx = infos.findIndex(i => !i.complete);
+    const total = infos.reduce((n, i) => n + i.n, 0);
+    const pct = Math.round((total / GEAR_PATH_TOTAL) * 100);
+    // First unticked step anywhere, for the header.
+    let next = '';
+    for (const s of GEAR_PATH) {
+      for (const st of s.steps) {
+        const pending = st.subs ? st.subs.find(x => !done(x.k)) : (done(st.k) ? null : st);
+        if (pending) { next = gpPlain(pending.text); break; }
+      }
+      if (next) break;
+    }
+    if (!gpOpen.has(c.id)) gpOpen.set(c.id, new Set());
+    const open = gpOpen.get(c.id);
+    const ds = `data-char="${esc(c.id)}"`;
+    const tags = st => `${st.who ? `<span class="gp-tag ${st.who}">${icon(GP_WHO[st.who][0])}${GP_WHO[st.who][1]}</span>` : ''}${st.ongoing ? `<span class="gp-tag ongoing">${icon('refresh')}Ongoing</span>` : ''}`;
+    const item = (x, num) => {
+      const on = done(x.k);
+      return `<button class="gp-item ${on ? 'is-done' : ''}" data-action="gp-toggle" ${ds} data-task="${x.k}" aria-pressed="${on}">
+        <span class="check">${icon('check')}</span>
+        <span class="gp-num">${num}</span>
+        <span class="gp-text"><span class="gp-line">${gpText(x.text)} ${tags(x)}</span>${x.note ? `<small>${esc(x.note)}</small>` : ''}</span>
+      </button>`;
+    };
+    let num = 0;
+    const stages = infos.map((i, idx) => {
+      const s = i.s;
+      const status = i.complete ? 'complete' : idx === activeIdx ? 'active' : 'upcoming';
+      const steps = s.steps.map(st => {
+        num++;
+        if (!st.subs) return `<li>${item(st, num)}</li>`;
+        const subDone = st.subs.every(x => done(x.k));
+        return `<li class="gp-group ${subDone ? 'is-done' : ''}">
+          <div class="gp-parent"><span class="gp-num">${num}</span><span class="gp-line">${gpText(st.text)} ${tags(st)}</span>
+            <span class="gp-sub-count">${st.subs.filter(x => done(x.k)).length}/${st.subs.length}</span></div>
+          <ul class="gp-subs">${st.subs.map((x, j) => `<li>${item(x, `${num}.${j + 1}`)}</li>`).join('')}</ul>
+        </li>`;
+      }).join('');
+      return `<details class="rm-phase gp-stage is-${status}" data-phase="${s.key}" ${ds} ${open.has(s.key) ? 'open' : ''} style="--p:${Math.round((i.n / i.total) * 100)}%">
+        <summary>
+          <span class="rm-node">${i.complete ? icon('check') : idx + 1}</span>
+          <span class="rm-title"><small>${esc(s.gs)}</small><b>${esc(s.name)}</b></span>
+          <span class="rm-status">${status === 'active' ? 'Current' : PHASE_LABEL[status]}</span>
+          <span class="rm-count"><b>${i.n}</b>/${i.total}</span>
+          <span class="rm-bar"><i></i></span>
+          <span class="rm-chev">${icon('down')}</span>
+        </summary>
+        <div class="rm-body">
+          ${s.desc ? `<p class="rm-desc">${esc(s.desc)}</p>` : ''}
+          <ul class="gp-steps">${steps}</ul>
+        </div>
+      </details>`;
+    }).join('');
+    const allOpen = open.size === GEAR_PATH.length;
+    return `<section class="board gear-path">
+      <header class="board-head">
+        <div class="ring" style="--p:${pct}%" role="img" aria-label="${total} of ${GEAR_PATH_TOTAL} steps done">
+          <span><b>${pct}</b><small>%</small></span>
+        </div>
+        <div class="board-title">
+          <h3>Gear progression path</h3>
+          <p>The recommended order from Level 45 to Sanctuary: Ludra. Ticks are saved for each character.</p>
+          <p class="board-reset">${icon('flag')}${next ? `Next: <b>${esc(next)}</b>` : 'Every step is done'}</p>
+        </div>
+        <div class="board-tools">
+          <button class="tool-icon gp-expand ${allOpen ? 'is-open' : ''}" data-action="gp-expand" ${ds} title="Expand or collapse all stages" aria-label="${allOpen ? 'Collapse all stages' : 'Expand all stages'}">${icon('down')}</button>
+          <button class="tool-icon" data-action="gp-reset" ${ds} title="Reset all" aria-label="Reset the gear progression path">${icon('refresh')}</button>
+        </div>
+      </header>
+      <div class="rm-timeline">${stages}</div>
+    </section>`;
+  }
 
   function openGuide(focusKey) {
     const m = openModal({
@@ -1066,6 +1236,9 @@
     }
   }
 
+  // Completed boards the person chose to show again ("charId:kind"; kept while the page is open).
+  const boardShown = new Set();
+
   /* Full board on the character page: a progress ring header and one tile per activity. */
   function boardHTML(c, kind) {
     const manage = manageMode.has(c.id + ':' + kind);
@@ -1080,7 +1253,11 @@
     }[kind];
     const tiles = list.map(t => tileHTML(c, kind, t, manage)).join('') ||
       `<p class="task-empty">No ${kind} activities. Add some in Settings &rarr; Tasks.</p>`;
-    return `<section class="board ${kind} ${s.total && s.done === s.total ? 'is-complete' : ''}">
+    // A finished list folds away its cards; the arrow shows them again.
+    const complete = s.total > 0 && s.done === s.total;
+    if (!complete) boardShown.delete(c.id + ':' + kind); // fold again the next time it's finished
+    const folded = complete && !manage && !boardShown.has(c.id + ':' + kind);
+    return `<section class="board ${kind} ${complete ? 'is-complete' : ''} ${folded ? 'is-folded' : ''}">
       <header class="board-head">
         <div class="ring" style="--p:${s.pct}%" role="img" aria-label="${s.done} of ${s.total} ${kind} activities done">
           <span><b>${s.done}</b><small>/${s.total}</small></span>
@@ -1095,10 +1272,12 @@
         <div class="board-tools">
           <button class="tool-icon" data-action="check-all" ${ds} title="Mark everything done" aria-label="Mark all ${kind === 'static' ? 'one-time' : kind} activities done">${icon('checkAll')}</button>
           <button class="tool-icon" data-action="clear-list" ${ds} title="Reset all" aria-label="Reset all ${kind === 'static' ? 'one-time' : kind} activities">${icon('refresh')}</button>
+          ${complete && !manage ? `<button class="tool-icon fold-btn" data-action="fold-board" ${ds} aria-expanded="${!folded}"
+            title="${folded ? 'Show activities' : 'Hide activities'}" aria-label="${folded ? 'Show' : 'Hide'} completed ${kind === 'static' ? 'one-time' : kind} activities">${icon(folded ? 'down' : 'up')}</button>` : ''}
         </div>
       </header>
       ${manage ? '<p class="fine board-note">Hidden activities don\'t count toward this character\'s progress.</p>' : ''}
-      <div class="qt-grid">${tiles}</div>
+      ${folded ? '' : `<div class="qt-grid">${tiles}</div>`}
     </section>`;
   }
 
@@ -1185,6 +1364,7 @@
         ${boardHTML(c, 'daily')}
         ${boardHTML(c, 'weekly')}
         ${boardHTML(c, 'static')}
+        ${gearPathHTML(c)}
       </section>
 
       <aside class="detail-side">
@@ -3173,6 +3353,36 @@
       const set = rmOpen.get(c.id) || new Set();
       rmOpen.set(c.id, set.size === ROADMAP.length ? new Set() : new Set(ROADMAP.map(p => p.key)));
       rerender(el);
+    },
+    'fold-board'(el) {
+      const key = el.dataset.char + ':' + el.dataset.kind;
+      if (boardShown.has(key)) boardShown.delete(key); else boardShown.add(key);
+      rerender(el);
+    },
+    'gp-toggle'(el) {
+      const c = getChar(el.dataset.char);
+      if (!c) return;
+      const k = el.dataset.task;
+      if (c.path.done[k]) delete c.path.done[k]; else c.path.done[k] = true;
+      save();
+      rerender(el);
+    },
+    'gp-expand'(el) {
+      const c = getChar(el.dataset.char);
+      if (!c) return;
+      const set = gpOpen.get(c.id) || new Set();
+      gpOpen.set(c.id, set.size === GEAR_PATH.length ? new Set() : new Set(GEAR_PATH.map(s => s.key)));
+      rerender(el);
+    },
+    'gp-reset'(el) {
+      const c = getChar(el.dataset.char);
+      if (!c || !Object.keys(c.path.done).length) return;
+      confirmModal({
+        title: 'Reset the gear progression path?',
+        message: `This clears every tick on ${esc(c.name)}'s gear progression path.`,
+        confirmLabel: 'Reset', danger: true,
+        onConfirm() { c.path.done = {}; save(); render(); },
+      });
     },
     'sign-in'() { signIn(); },
     account() { toggleAccountMenu(); },

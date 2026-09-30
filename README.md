@@ -71,8 +71,10 @@ People's own activities, renames, hidden or deleted activities, and progress are
 - **Local app:** the server relays the official announcements live
   (`/api/news`, `/api/news/<id>` from the AION 2 community API, English notice board) and the
   page refreshes them every 15 minutes.
-- **GitHub Pages site:** the deploy workflow runs `tools/fetch_news.py` on every push and every hour,
-  saving the announcements as `public/news/feed.json` and `public/news/<id>.json`, which the page reads.
+- **GitHub Pages site:** the deploy workflow runs `tools/fetch_news.py` on every push, saving the
+  announcements as `public/news/feed.json` and `public/news/<id>.json`, which the page reads.
+  Every hour on the hour it also checks the official list against the news already on the site and
+  redeploys only when there's a new or edited announcement; otherwise the run stops after the check.
   (GitHub pauses scheduled runs if the repository has had no activity for 60 days; any push restarts them.)
 - **claude.ai link:** claude.ai pages can't load other websites, so the news there is a copy kept in
   the page's shared storage (`news/feed` and `news/feed/articles/<id>`). Everyone can read it; only

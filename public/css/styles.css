@@ -680,6 +680,9 @@ optgroup option { color: var(--ink); }
 .tool-icon .ico { width: 17px; height: 17px; }
 .tool-icon:hover { color: var(--kc, var(--accent)); border-color: color-mix(in srgb, var(--kc, var(--accent)) 55%, transparent); background: color-mix(in srgb, var(--kc, var(--accent)) 10%, transparent); }
 .board-note { padding: 0 4px; }
+/* Show/hide arrow on a finished board */
+.fold-btn { color: var(--ok); border-color: rgba(52, 211, 153, 0.4); background: rgba(52, 211, 153, 0.08); }
+.fold-btn:hover { color: var(--ok); border-color: var(--ok); background: rgba(52, 211, 153, 0.16); }
 
 .qt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 228px), 1fr)); gap: 12px; }
 .board.daily .qt-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 172px), 1fr)); }
@@ -1440,6 +1443,52 @@ optgroup option { color: var(--ink); }
 }
 .rm-next b { color: var(--ink); }
 .rm-next .ico { width: 14px; height: 14px; color: var(--ok); }
+/* ---------- 7d. Gear progression path (character page, under one-time content) ---------- */
+.board.gear-path { --kc: #fb923c; }
+.gp-expand .ico { transition: transform 0.2s; }
+.gp-expand.is-open .ico { transform: rotate(180deg); }
+.gp-steps, .gp-subs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.gp-item {
+  display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 9px 12px; border-radius: 10px;
+  border: 1px solid transparent; background: rgba(var(--tint), 0.025); color: var(--ink); text-align: left; cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.gp-item:hover { background: var(--soft); border-color: var(--line); }
+.gp-item .check { margin-top: 1px; }
+.gp-num {
+  flex: none; min-width: 26px; padding-top: 2px; font-size: 0.74rem; font-weight: 900; color: var(--kc);
+  font-variant-numeric: tabular-nums;
+}
+.gp-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.gp-line { font-size: 0.9rem; font-weight: 600; line-height: 1.45; overflow-wrap: anywhere; }
+.gp-line b { font-weight: 900; color: var(--ink); }
+.gp-text small { font-size: 0.78rem; line-height: 1.45; color: var(--muted); }
+.gp-item.is-done .gp-line { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(154, 164, 194, 0.5); }
+.gp-item.is-done .gp-line b { color: var(--muted); }
+.gp-item.is-done .check { background: var(--ok); border-color: var(--ok); color: #06291c; }
+.gp-item.is-done .gp-num { color: var(--ok); }
+.gp-tag {
+  display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; padding: 1px 7px; border-radius: 999px; vertical-align: 1px;
+  font-size: 0.64rem; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; text-decoration: none;
+  border: 1px solid var(--line); color: var(--muted); white-space: nowrap;
+}
+.gp-tag .ico { width: 11px; height: 11px; }
+.gp-tag.main { color: var(--gold); border-color: rgba(245, 201, 106, 0.4); background: rgba(245, 201, 106, 0.08); }
+.gp-tag.alts { color: var(--accent-2); border-color: rgba(159, 180, 255, 0.35); background: rgba(159, 180, 255, 0.08); }
+.gp-tag.ongoing { color: var(--static); border-color: rgba(45, 212, 191, 0.35); background: rgba(45, 212, 191, 0.08); }
+/* A step with sub-steps: heading row, then the sub-steps indented under a guide line */
+.gp-group { padding: 9px 12px 6px; border-radius: 12px; border: 1px solid var(--line); background: rgba(var(--tint), 0.015); }
+.gp-parent { display: flex; align-items: flex-start; gap: 10px; padding-left: 30px; margin-bottom: 6px; }
+.gp-parent .gp-line { flex: 1; min-width: 0; }
+.gp-sub-count {
+  flex: none; padding: 1px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 900; color: var(--muted);
+  border: 1px solid var(--line); font-variant-numeric: tabular-nums;
+}
+.gp-group.is-done .gp-sub-count { color: var(--ok); border-color: rgba(52, 211, 153, 0.4); }
+.gp-group.is-done .gp-parent .gp-num { color: var(--ok); }
+.gp-subs { margin-left: 16px; padding-left: 12px; border-left: 2px solid color-mix(in srgb, var(--kc) 30%, transparent); }
+.gp-subs .gp-num { min-width: 34px; }
+
 @media (max-width: 720px) {
   .rm-phase summary { grid-template-columns: auto minmax(0, 1fr) auto auto; }
   .rm-bar, .rm-chev { display: none; }
