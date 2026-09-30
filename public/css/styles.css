@@ -2145,6 +2145,53 @@ optgroup option { color: var(--ink); }
 .growth .panel-head .cp-mode { margin: 0; }
 .growth .cp-mode button.is-active { background: var(--accent-2); color: #0b0e1a; }
 
+/* Compact empty states: Combat Power and Odyle Energy not set yet */
+.cp-hero.is-unset { padding: 12px 14px; gap: 8px; align-items: stretch; }
+.cp-hero.is-unset .cph-top { align-items: center; }
+.cph-unset { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.82rem; color: var(--muted); }
+.odyle-card.is-unset { padding: 10px 14px; gap: 2px; }
+.od-hint { margin: 0; font-size: 0.76rem; color: var(--muted); }
+
+/* Stats & Gear tab */
+.build .panel-head { margin-bottom: 10px; }
+.bd-scores { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 6px; }
+.bd-score {
+  display: flex; flex-direction: column; gap: 1px; padding: 8px 10px; border-radius: 12px;
+  background: var(--well); border: 1px solid rgba(var(--tint), 0.05); min-width: 0;
+}
+.bd-score small { font-size: 0.64rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.bd-score b { font-size: 1.05rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.bd-score.is-total b { font-size: 1.3rem; color: var(--accent-2); }
+.bd-score .delta { font-size: 0.68rem; }
+.bd-facts { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 8px 2px 4px; font-size: 0.74rem; color: var(--muted); }
+.bd-facts b { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.bd-sec { border-top: 1px solid rgba(var(--tint), 0.07); }
+.bd-sec summary {
+  display: flex; align-items: center; gap: 8px; padding: 10px 2px; cursor: pointer; list-style: none;
+  font-size: 0.8rem; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2);
+}
+.bd-sec summary::-webkit-details-marker { display: none; }
+.bd-sec summary > .ico:first-child { width: 15px; height: 15px; color: var(--accent-2); }
+.bd-sec summary small { margin-left: auto; font-size: 0.72rem; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--muted); }
+.bd-sec summary > .ico:last-child { width: 15px; height: 15px; color: var(--muted); transition: transform 0.2s; }
+.bd-sec[open] summary > .ico:last-child { transform: rotate(180deg); }
+.bd-sec summary:hover { color: var(--ink); }
+.bd-sec[open] { padding-bottom: 10px; }
+.build .gear-list { margin-bottom: 8px; }
+.build .gear-list li { padding: 4px 0; font-size: 0.8rem; grid-template-columns: 80px 1fr auto; }
+.build .stats-form { gap: 6px 8px; }
+.build .stat span { font-size: 0.7rem; }
+.build .stat input { min-height: 30px; padding: 3px 8px; font-size: 0.85rem; }
+.build .panel-actions { margin-top: 8px; }
+.bd-note { margin: 6px 2px 0; font-size: 0.72rem; }
+
+/* Completion history inside the History window */
+.hist-heat {
+  max-width: 460px; margin-bottom: 16px; padding: 14px 16px; border-radius: var(--radius);
+  background: var(--card); border: 1px solid color-mix(in srgb, var(--cc, var(--accent)) 25%, var(--line));
+}
+.hh-tip { margin: 8px 0 0; }
+
 /* Currency and collection counters */
 .counters { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .counter {

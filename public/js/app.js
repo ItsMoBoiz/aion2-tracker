@@ -33,8 +33,10 @@
   // Spacetime Rift alert options (minutes before a portal opens; sounds are synthesised).
   const RIFT_LEADS = [0, 1, 2, 5, 10];
   const RIFT_SOUNDS = [['chime', 'Chime'], ['bell', 'Bell'], ['arcane', 'Arcane'], ['horn', 'War horn'], ['ping', 'Ping'], ['none', 'No sound']];
-  const SIDE_TABS = [['roadmap', 'Roadmap'], ['history', 'History'], ['notes', 'Notes'], ['stats', 'Stats'], ['gear', 'Gear'], ['calc', 'Calculations'],
-    ['growth', 'Growth'], ['wallet', 'Currency'], ['collect', 'Collections']];
+  // Character page side tabs. Completion history lives in the header's History window.
+  const SIDE_TABS = [['roadmap', 'Roadmap'], ['notes', 'Notes'], ['build', 'Stats & Gear'],
+    ['wallet', 'Currency'], ['collect', 'Collections'], ['growth', 'Growth']];
+  const OLD_SIDE_TABS = { stats: 'build', gear: 'build', calc: 'build', history: 'roadmap' };
   // AION 2 global launch: 30 September 2026, 16:00 Qatar time (AST, UTC+3).
   const LAUNCH_AT = Date.parse('2026-09-30T16:00:00+03:00');
   // Odyle Energy: stores up to 840 and refills 15 every 3 hours; one reward cube costs 40.
@@ -643,7 +645,10 @@
         active: isObj(raw.ui) && typeof raw.ui.active === 'string' ? raw.ui.active : 'overview',
         heatMonths: HEAT_RANGES.includes(num(isObj(raw.ui) && raw.ui.heatMonths)) ? num(raw.ui.heatMonths) : 1,
         newsSeenAt: num(isObj(raw.ui) && raw.ui.newsSeenAt, 0), // newest announcement this device has seen
-        sideTab: SIDE_TABS.some(([k]) => isObj(raw.ui) && raw.ui.sideTab === k) ? raw.ui.sideTab : 'history',
+        sideTab: (() => {
+          const t = isObj(raw.ui) ? OLD_SIDE_TABS[raw.ui.sideTab] || raw.ui.sideTab : '';
+          return SIDE_TABS.some(([k]) => k === t) ? t : 'roadmap';
+        })(),
       },
       updatedAt: num(raw.updatedAt, 0), // last change made by the person; decides which copy wins when syncing
       // Which official activities this person has already been offered (see CATALOG).
@@ -1184,6 +1189,10 @@
   // Remember which phases are open when someone opens/closes them ("toggle" doesn't bubble).
   document.addEventListener('toggle', e => {
     const d = e.target;
+    if (d.matches && d.matches('.bd-sec')) {
+      if (d.open) bdOpen.add(d.dataset.sec); else bdOpen.delete(d.dataset.sec);
+      return;
+    }
     if (d.matches && d.matches('.gp-stage')) {
       const set = gpOpen.get(d.dataset.char) || new Set();
       if (d.open) set.add(d.dataset.phase); else set.delete(d.dataset.phase);
@@ -1455,10 +1464,9 @@
         ${odyleCardHTML(c)}
         <div class="seg side-tabs" role="tablist" aria-label="Character details">
           ${SIDE_TABS.map(([key, label]) => `<button class="seg-btn ${side === key ? 'is-active' : ''}" role="tab" aria-selected="${side === key}"
-            data-action="side-tab" data-value="${key}" data-char="${esc(c.id)}">${label}${key === 'stats' && draft ? ' <i class="dot-warn" title="Unsaved changes"></i>' : ''}${key === 'notes' && notesFor(c.id).length ? ` <span class="tab-count">${notesFor(c.id).length}</span>` : ''}</button>`).join('')}
+            data-action="side-tab" data-value="${key}" data-char="${esc(c.id)}">${label}${key === 'build' && draft ? ' <i class="dot-warn" title="Unsaved changes"></i>' : ''}${key === 'notes' && notesFor(c.id).length ? ` <span class="tab-count">${notesFor(c.id).length}</span>` : ''}</button>`).join('')}
         </div>
-        ${side === 'history' ? `<article class="panel heat">${heatmapHTML(c)}</article>` : ''}
-        ${side === 'calc' ? `<article class="panel" id="calc-panel">${calcHTML(c)}</article>` : ''}
+        ${side === 'build' ? buildHTML(c, k, stats, draft) : ''}
         ${side === 'growth' ? `<article class="panel growth">${growthHTML(c)}</article>` : ''}
         ${side === 'wallet' || side === 'collect' ? `<article class="panel">${counterHTML(c, side)}</article>` : ''}
         ${side === 'roadmap' ? `<article class="panel rm-panel">${roadmapHTML(c)}</article>
@@ -1467,36 +1475,6 @@
           <header class="panel-head"><h3>Notes for ${esc(c.name)}</h3>
             <button class="btn ghost xs" data-action="open-notes" title="See notes for every character and general notes">${icon('note')}All notes</button></header>
           <div class="notes-ui" data-scope="${esc(c.id)}">${notesUIHTML(c.id)}</div>
-        </article>` : ''}
-        ${side === 'stats' ? `<article class="panel">
-          <header class="panel-head">
-            <h3>Stats</h3>
-            <span class="badge warn" id="stats-dirty" ${draft ? '' : 'hidden'}>Unsaved</span>
-          </header>
-          <form class="stats-form" id="stats-form" data-char="${esc(c.id)}" autocomplete="off">
-            ${STAT_DEFS.map(d => `<label class="stat"><span>${esc(d.label)}</span>
-              <input type="number" inputmode="decimal" step="any" min="0" data-stat="${d.key}" data-char="${esc(c.id)}" value="${esc(stats[d.key] != null ? stats[d.key] : '')}" placeholder="0"></label>`).join('')}
-          </form>
-          <div class="panel-actions">
-            <button class="btn ghost sm" data-action="revert-stats" data-char="${esc(c.id)}">Revert</button>
-            <button class="btn primary sm" data-action="save-stats" data-char="${esc(c.id)}">Save stats</button>
-          </div>
-        </article>` : ''}
-        ${side === 'gear' ? `<article class="panel">
-          <header class="panel-head">
-            <h3>Gear</h3>
-            <span class="gs-badge">GS <b>${fmtInt(k.gearScore)}</b></span>
-          </header>
-          <ul class="gear-list">
-            ${k.items.map(it => `<li class="${it.g ? '' : 'is-empty'}">
-              <span class="slot">${esc(it.slot.label)}</span>
-              <span class="item" style="--rc:${it.g ? rarityColor(it.g.rarity) : 'var(--faint)'}">${it.g
-                ? `${esc(String(it.g.name || '').trim() || it.g.rarity || 'Item')}${num(it.g.enchant) ? ` <em>+${fmtInt(it.g.enchant)}</em>` : ''}${num(it.g.ilvl) ? ` <small>iL ${fmtInt(it.g.ilvl)}</small>` : ''}`
-                : 'Empty'}</span>
-              <span class="score">${it.g ? fmtInt(it.score) : ''}</span>
-            </li>`).join('')}
-          </ul>
-          <button class="btn ghost sm block" data-action="edit-gear" data-char="${esc(c.id)}">${icon('sword')}Edit gear</button>
         </article>` : ''}
       </aside>
     </div>`;
@@ -1524,17 +1502,19 @@
       </div>`;
     const sub = `<p class="cps-sub">${auto ? 'From' : 'Calculated score'} ${auto ? '' : `<b>${fmtInt(k.cp)}</b> · `}GS <b>${fmtInt(k.gearScore)}</b> + Stats <b>${fmtInt(k.statScore)}</b>${draft ? ' (unsaved preview)' : ''}</p>`;
     if (!game) {
+      // Compact empty state: one line of text and a small button.
       return `<div class="cp-hero is-unset">
           <div class="cph-top">
-            <div class="cph-val"><small>Combat Power · ${auto ? 'Auto' : 'Manual'}</small><b>—</b></div>
+            <div class="cph-val"><small>Combat Power · ${auto ? 'Auto' : 'Manual'}</small></div>
             ${modeSwitch}
           </div>
-          ${auto
-            ? `<p class="cph-next">Auto uses your Stats and Gear. Fill them in to calculate your Combat Power.</p>
-               <button class="btn primary sm" data-action="side-tab" data-value="stats" ${ds}>${icon('edit')}Enter stats</button>`
-            : `<p class="cph-next">Enter the Combat Power shown in the game to see your progression tier.</p>
-               <button class="btn primary sm" data-action="edit-cp" ${ds}>${icon('sword')}Set Combat Power</button>`}
-        </div>${sub}`;
+          <div class="cph-unset">
+            <span>${auto ? 'Fill in Stats &amp; Gear to calculate it.' : 'Not set yet.'}</span>
+            ${auto
+              ? `<button class="btn primary xs" data-action="side-tab" data-value="build" data-open="stats" ${ds}>${icon('edit')}Enter stats</button>`
+              : `<button class="btn primary xs" data-action="edit-cp" ${ds}>${icon('edit')}Set CP</button>`}
+          </div>
+        </div>${k.cp ? sub : ''}`;
     }
     const t = cpTier(game);
     const prev = lastWeekSnapshot(c);
@@ -1687,9 +1667,11 @@
     const s = odyleStatus(c);
     if (!s) {
       return `<div class="odyle-card is-unset">
-        <div class="od-top"><span class="od-label">${icon('bolt')}Odyle Energy</span></div>
-        <p class="od-when">Enter your current Odyle Energy to see when it's full (refills ${ODYLE.per} every 3 hours, up to ${fmtInt(ODYLE.max)}).</p>
-        <button class="btn ghost sm" data-action="edit-odyle" ${ds}>${icon('bolt')}Set Odyle Energy</button>
+        <div class="od-top">
+          <span class="od-label">${icon('bolt')}Odyle Energy</span>
+          <button class="btn ghost xs" data-action="edit-odyle" ${ds} title="Enter your current Odyle Energy to see when it's full">${icon('edit')}Set</button>
+        </div>
+        <p class="od-hint">Refills ${ODYLE.per} every 3 h, up to ${fmtInt(ODYLE.max)}.</p>
       </div>`;
     }
     return `<div class="odyle-card ${s.v >= ODYLE.max ? 'is-full' : ''}" data-odyle-card="${esc(c.id)}">
@@ -2361,32 +2343,65 @@
 `;
   }
 
+  // Calculated scores at the top of the Stats & Gear tab (refreshed live while stats are typed).
   function calcHTML(c) {
     const draft = statsDrafts[c.id];
     const k = calc(c, draft || c.stats);
     const prev = lastWeekSnapshot(c);
-    let delta = '';
-    if (prev) {
-      const diff = k.cp - num(prev.cp);
-      delta = `<span class="delta ${diff > 0 ? 'up' : diff < 0 ? 'down' : ''}">${diff > 0 ? '+' : ''}${fmtInt(diff)} vs last week</span>`;
-    }
+    const diff = prev ? k.cp - num(prev.cp) : null;
     const weak = k.weakest
-      ? (k.weakest.g ? `${esc(k.weakest.slot.label)} (${fmtInt(k.weakest.score)})` : `${esc(k.weakest.slot.label)} (empty)`)
+      ? (k.weakest.g ? `${esc(k.weakest.slot.label)}` : `${esc(k.weakest.slot.label)} (empty)`)
       : '—';
-    return `<header class="panel-head">
-        <h3>Calculations</h3>
-        ${draft ? '<span class="badge warn">Preview</span>' : ''}
-      </header>
-      <div class="cp-big"><small>Calculated score</small><b>${fmtInt(k.cp)}</b>${delta}</div>
-      <dl class="kv">
-        <div><dt>Gear Score</dt><dd>${fmtInt(k.gearScore)}</dd></div>
-        <div><dt>Stat Score</dt><dd>${fmtInt(k.statScore)}</dd></div>
-        <div><dt>Avg item level</dt><dd>${k.equipped ? fmtNum(k.avgIlvl) : '—'}</dd></div>
-        <div><dt>Avg enchant</dt><dd>${k.equipped ? '+' + fmtNum(k.avgEnchant) : '—'}</dd></div>
-        <div><dt>Slots equipped</dt><dd>${k.equipped}/${GEAR_SLOTS.length}</dd></div>
-        <div><dt>Upgrade next</dt><dd>${weak}</dd></div>
-      </dl>
-      <p class="fine">Calculated score = Gear Score + Stat Score, for comparing your own characters. Change the weights in Settings &rarr; Scoring. Your in-game Combat Power is set above.</p>`;
+    return `<div class="bd-scores">
+        <div class="bd-score is-total" title="Calculated score = Gear Score + Stat Score"><small>Score${draft ? ' · preview' : ''}</small><b>${fmtInt(k.cp)}</b>
+          ${diff !== null ? `<span class="delta ${diff > 0 ? 'up' : diff < 0 ? 'down' : ''}">${diff > 0 ? '+' : ''}${fmtInt(diff)} wk</span>` : ''}</div>
+        <div class="bd-score"><small>Gear</small><b>${fmtInt(k.gearScore)}</b></div>
+        <div class="bd-score"><small>Stats</small><b>${fmtInt(k.statScore)}</b></div>
+      </div>
+      <p class="bd-facts">
+        <span>Avg iL <b>${k.equipped ? fmtNum(k.avgIlvl) : '—'}</b></span>
+        <span>Avg <b>${k.equipped ? '+' + fmtNum(k.avgEnchant) : '—'}</b></span>
+        <span><b>${k.equipped}/${GEAR_SLOTS.length}</b> slots</span>
+        <span>Upgrade next <b>${weak}</b></span>
+      </p>`;
+  }
+
+  // Stats & Gear tab: scores, gear list and stats form in one compact panel with foldable sections.
+  const bdOpen = new Set(); // open sections ('gear', 'stats'), kept while the page is open
+  function buildHTML(c, k, stats, draft) {
+    const ds = `data-char="${esc(c.id)}"`;
+    const filled = STAT_DEFS.filter(d => num(stats[d.key])).length;
+    const openGear = bdOpen.has('gear'), openStats = bdOpen.has('stats') || !!draft;
+    return `<article class="panel build">
+      <header class="panel-head"><h3>Stats &amp; Gear</h3>
+        <span class="badge warn" id="stats-dirty" ${draft ? '' : 'hidden'}>Unsaved</span></header>
+      <div id="calc-panel">${calcHTML(c)}</div>
+      <details class="bd-sec" data-sec="gear" ${openGear ? 'open' : ''}>
+        <summary>${icon('sword')}<span>Gear</span><small>GS ${fmtInt(k.gearScore)} · ${k.equipped}/${GEAR_SLOTS.length}</small>${icon('down')}</summary>
+        <ul class="gear-list">
+          ${k.items.map(it => `<li class="${it.g ? '' : 'is-empty'}">
+            <span class="slot">${esc(it.slot.label)}</span>
+            <span class="item" style="--rc:${it.g ? rarityColor(it.g.rarity) : 'var(--faint)'}">${it.g
+              ? `${esc(String(it.g.name || '').trim() || it.g.rarity || 'Item')}${num(it.g.enchant) ? ` <em>+${fmtInt(it.g.enchant)}</em>` : ''}${num(it.g.ilvl) ? ` <small>iL ${fmtInt(it.g.ilvl)}</small>` : ''}`
+              : 'Empty'}</span>
+            <span class="score">${it.g ? fmtInt(it.score) : ''}</span>
+          </li>`).join('')}
+        </ul>
+        <button class="btn ghost sm block" data-action="edit-gear" ${ds}>${icon('edit')}Edit gear</button>
+      </details>
+      <details class="bd-sec" data-sec="stats" ${openStats ? 'open' : ''}>
+        <summary>${icon('sliders')}<span>Stats</span><small>${filled}/${STAT_DEFS.length} filled</small>${icon('down')}</summary>
+        <form class="stats-form" id="stats-form" ${ds} autocomplete="off">
+          ${STAT_DEFS.map(d => `<label class="stat"><span>${esc(d.label)}</span>
+            <input type="number" inputmode="decimal" step="any" min="0" data-stat="${d.key}" ${ds} value="${esc(stats[d.key] != null ? stats[d.key] : '')}" placeholder="0"></label>`).join('')}
+        </form>
+        <div class="panel-actions">
+          <button class="btn ghost sm" data-action="revert-stats" ${ds}>Revert</button>
+          <button class="btn primary sm" data-action="save-stats" ${ds}>Save stats</button>
+        </div>
+      </details>
+      <p class="fine bd-note">Score = Gear + Stats, for comparing your own characters. Weights: Settings &rarr; Scoring.</p>
+    </article>`;
   }
 
   function updateClocks() {
@@ -3685,6 +3700,7 @@
           <label class="field inline"><span>Character</span><select id="hist-filter"></select></label>
           <span class="fine">Weeks are archived automatically at each weekly reset. Up to ${HISTORY_LIMIT} weeks are kept.</span>
         </div>
+        <section class="hist-heat heat" id="hist-heat"></section>
         <div id="hist-list"></div>`,
       footer: '<button class="btn primary" data-m="close">Done</button>',
       onChange(e) {
@@ -3709,7 +3725,28 @@
       },
     });
 
+    // Completion history (streak + heatmap) for the chosen character, or the open / main one.
+    m.addEventListener('click', e => {
+      const b = e.target.closest('[data-action="heat-range"]');
+      if (!b) return;
+      state.ui.heatMonths = num(b.dataset.value, 1);
+      save({ sync: false });
+      paint();
+    });
+
+    function paintHeat() {
+      const box = $('#hist-heat', m);
+      const c = getChar(filter) || getChar(state.ui.active) || mainChar() || state.characters[0];
+      box.hidden = !c;
+      if (!c) return;
+      box.style.setProperty('--cc', classColor(c));
+      box.innerHTML = heatmapHTML(c).replace('<h3>Completion history</h3>',
+        `<h3>Completion history · ${esc(c.name)}</h3>`) +
+        (filter ? '' : '<p class="fine hh-tip">Choose a character above to see another one.</p>');
+    }
+
     function paint() {
+      paintHeat();
       const names = new Map();
       for (const c of state.characters) names.set(c.id, c.name);
       for (const h of state.history) for (const x of h.chars) if (!names.has(x.id)) names.set(x.id, x.name);
@@ -3899,6 +3936,7 @@
     },
     'side-tab'(el) {
       state.ui.sideTab = el.dataset.value;
+      if (el.dataset.open) bdOpen.add(el.dataset.open); // e.g. "Enter stats" opens the Stats section
       save({ sync: false }); // a per-device view preference
       rerender(el);
     },
