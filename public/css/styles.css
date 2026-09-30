@@ -1461,8 +1461,7 @@ optgroup option { color: var(--ink); }
 .rm-next b { color: var(--ink); }
 .rm-next .ico { width: 14px; height: 14px; color: var(--ok); }
 /* ---------- 7d. Gear progression path (character page, under one-time content) ---------- */
-.board.gear-path { --kc: #fb923c; }
-.card-grid + .board.gear-path { margin-top: 18px; }
+.board.gear-path, .static-line.gpath-line { --kc: #fb923c; }
 .gp-owner { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; color: var(--gold); }
 .gp-owner .ico { width: 13px; height: 13px; }
 .gp-expand .ico { transition: transform 0.2s; }

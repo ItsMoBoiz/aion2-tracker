@@ -42,8 +42,8 @@
   const CLASSES = ['Gladiator', 'Templar', 'Assassin', 'Ranger', 'Sorcerer', 'Elementalist', 'Cleric', 'Chanter'];
   const CLASS_ALIASES = { spiritmaster: 'Elementalist' };
   const CLASS_COLORS = {
-    Gladiator: '#f97316', Templar: '#fbbf24', Assassin: '#a78bfa', Ranger: '#34d399',
-    Sorcerer: '#60a5fa', Elementalist: '#22d3ee', Cleric: '#f0abfc', Chanter: '#fb7185',
+    Gladiator: '#22d3ee', Templar: '#fbbf24', Assassin: '#a78bfa', Ranger: '#f472b6',
+    Sorcerer: '#f05252', Elementalist: '#60a5fa', Cleric: '#34d399', Chanter: '#f97316',
   };
   const CLASS_INFO = {
     Gladiator: 'Melee fighter using heavy weapons and AoE strikes.',
@@ -130,6 +130,9 @@
     { kind: 'daily', key: 'daily.expedition-conquest', rev: 1, name: 'Expedition Conquest', count: 1, desc: 'Daily Expedition Conquest' },
     { kind: 'daily', key: 'daily.transcendence', rev: 1, name: 'Transcendence', count: 1, desc: 'Arcana + Stigma' },
     { kind: 'daily', key: 'daily.nightmares', rev: 1, name: 'Nightmares', count: 2, desc: 'Daily Nightmare entries' },
+    { kind: 'daily', key: 'daily.kinah-cap', rev: 1, name: 'Kinah', count: 1, desc: 'Daily Kinah Cap' },
+    { kind: 'daily', key: 'daily.rewards', rev: 1, name: 'Daily Rewards', count: 1, desc: 'Logins, Shop, Claims' },
+    { kind: 'daily', key: 'daily.shugo-keys', rev: 1, name: 'Shugo Fest Keys', count: 1, desc: 'Daily Shugo Fest Key Acquisition' },
 
     { kind: 'weekly', key: 'weekly.dungeons', rev: 1, name: 'Weekly Dungeons', count: 14, desc: '14 dungeon entries, track each run' },
     { kind: 'weekly', key: 'weekly.sanctuary', rev: 1, name: 'Sanctuary', count: 1, desc: '10-player weekly raid' },
@@ -143,6 +146,7 @@
     { kind: 'weekly', key: 'weekly.battlefield-pvp', rev: 1, name: 'Battlefield PvP', count: 3, desc: 'Weekly Battlefield PvP entries' },
     { kind: 'weekly', key: 'weekly.abyss-corridors', rev: 1, name: 'Abyss Corridors', count: 3, desc: 'Weekly Abyss Corridor entries' },
     { kind: 'weekly', key: 'weekly.dimensional-invasion', rev: 1, name: 'Dimensional Invasion', count: 14, desc: 'Weekly Dimensional Invasion rewards' },
+    { kind: 'weekly', key: 'weekly.currencies', rev: 1, name: 'Weekly Currencies', count: 1, desc: 'Cap Weekly-limited currencies' },
 
     { kind: 'static', key: 'static.regional-quests', rev: 1, name: 'Regional Quests' },
     { kind: 'static', key: 'static.sealed-dungeons', rev: 1, name: 'Sealed Dungeons' },
@@ -962,8 +966,7 @@
         ${ringTile('weekly', 'Weeklies done', wd, wt)}
       </section>
       ${mainChar() ? '' : `<p class="notice">${icon('crown')}<span>No main character is set. Server-wide dailies such as Duty Missions only show on your main. Open a character and choose <b>Make main</b>.</span></p>`}
-      <section class="card-grid">${orderedChars().map(charCardHTML).join('')}</section>
-      ${mainChar() ? gearPathHTML(mainChar()) : ''}`;
+      <section class="card-grid">${orderedChars().map(charCardHTML).join('')}</section>`;
   }
 
   const roleBadge = c => (c.role === 'main'
@@ -995,6 +998,13 @@
           ${icon('infinity')}<span>One-time</span>${bar(s.pct, `One-time progress for ${c.name}`)}<b>${s.done}<i>/${s.total}</i></b>
         </div>` : '';
       })()}
+      ${c.role === 'main' ? (() => {
+        const done = GEAR_PATH.reduce((n, s) => n + gpKeys(s).filter(k => c.path.done[k]).length, 0);
+        const cur = GEAR_PATH.find(s => gpKeys(s).some(k => !c.path.done[k]));
+        return `<div class="static-line gpath-line ${done === GEAR_PATH_TOTAL ? 'is-complete' : ''}" title="Gear progression path${cur ? ` · ${esc(cur.gs)} ${esc(cur.name)}` : ''}">
+          ${icon('sword')}<span>Gear path</span>${bar(Math.round((done / GEAR_PATH_TOTAL) * 100), `Gear progression path for ${c.name}`)}<b>${done}<i>/${GEAR_PATH_TOTAL}</i></b>
+        </div>`;
+      })() : ''}
       ${(() => {
         const done = ROADMAP.reduce((n, p) => n + p.tasks.filter(([k]) => c.roadmap.done[k]).length, 0);
         const cur = ROADMAP.find(p => c.level >= p.min && c.level < p.max) || ROADMAP[ROADMAP.length - 1];
