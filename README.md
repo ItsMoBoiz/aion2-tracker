@@ -105,7 +105,7 @@ which makes it handy for testing before you push. Data saved on `localhost` is s
 
 ## Resets
 
-- Default: weekly reset on **Wednesday 16:00 Asia/Qatar** (= Wed 09:00 Aion 2 server time); daily reset at 16:00.
+- Default: weekly reset on **Wednesday 16:00 AST** (= Wed 09:00 Aion 2 server time); daily reset at 16:00.
   Both can be changed in **Settings → Reset times**.
 - All times are shown in the viewer's own time zone.
 - At each daily reset, the day's completion is logged. At each weekly reset, the week is archived to **History**
