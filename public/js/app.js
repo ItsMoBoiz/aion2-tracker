@@ -1114,10 +1114,6 @@
           <button class="btn ghost" data-action="open-settings" title="Tasks, resets and scoring">${icon('sliders')}<span>Settings</span></button>
           <button class="btn ghost theme-btn" id="theme-btn" data-action="toggle-theme"></button>
           <div id="account-slot" class="account-slot"></div>
-          <div class="map-row">
-            <a class="map-link" href="https://interactivemap.app/aion2/maps/verteron" target="_blank" rel="noopener noreferrer"
-              title="Open the AION 2 interactive map in a new tab">${icon('pin')}<span>Interactive map</span>${icon('external')}</a>
-          </div>
         </div>
       </header>
       <div class="update-banner" id="update-banner" hidden>
@@ -1141,6 +1137,9 @@
       </button>`);
     }
     tabs.push(`<button class="tab tab-add" data-action="add-char" aria-label="Add character">${icon('plus')}</button>`);
+    // Interactive map link at the right end of the tabs row.
+    tabs.push(`<a class="map-link" href="https://interactivemap.app/aion2/maps/verteron" target="_blank" rel="noopener noreferrer"
+      title="Open the AION 2 interactive map in a new tab">${icon('pin')}<span>Interactive map</span>${icon('external')}</a>`);
     $('#tabs').innerHTML = tabs.join('');
   }
 
@@ -4257,7 +4256,15 @@
       const c = getChar(el.dataset.char);
       if (!c) return;
       const k = el.dataset.task;
-      if (c.roadmap.done[k]) delete c.roadmap.done[k]; else c.roadmap.done[k] = true;
+      const on = !c.roadmap.done[k];
+      if (on) c.roadmap.done[k] = true; else delete c.roadmap.done[k];
+      // "Main Story" ticks (or clears) every story quest of its phase along with it.
+      if (/main-story$/.test(k)) {
+        const p = ROADMAP.find(x => x.tasks.some(([tk]) => tk === k));
+        for (const q of (p && msqFor(c, p.key)) || []) {
+          if (on) c.roadmap.done[q.k] = true; else delete c.roadmap.done[q.k];
+        }
+      }
       save();
       rerender(el);
     },
@@ -4280,6 +4287,8 @@
       if (list && main && list.every(q => c.roadmap.done[q.k]) && !c.roadmap.done[main[0]]) {
         c.roadmap.done[main[0]] = true;
         toast(`All ${phaseName(p, c)} story quests done — "${main[1]}" ticked.`, { type: 'ok' });
+      } else if (main && c.roadmap.done[main[0]] && !c.roadmap.done[k]) {
+        delete c.roadmap.done[main[0]]; // a quest was unticked, so the main story isn't finished any more
       }
       save();
       rerender(el);

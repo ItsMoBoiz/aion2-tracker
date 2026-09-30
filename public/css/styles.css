@@ -204,7 +204,9 @@ optgroup option { color: var(--ink); }
 .brand p b { color: var(--ink-2); font-weight: 700; }
 
 .brand .sync-chip {
-  display: inline-flex; align-items: center; gap: 6px; margin-top: 4px;
+  /* width 0 + min-width 100%: fills the brand column without ever making it wider */
+  width: 0; min-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 6px; margin-top: 4px;
   font-size: 0.72rem; font-weight: 700; color: var(--muted);
 }
 .sync-chip::before {
@@ -219,7 +221,8 @@ optgroup option { color: var(--ink); }
 .choice-kv { margin: 12px 0; }
 .choice-kv dd { font-weight: 700; }
 
-.resets { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+/* Anchored to the left so the chips don't move when the buttons on the right change width while loading */
+.resets { display: flex; justify-content: flex-start; gap: 10px; flex-wrap: wrap; }
 .reset-chip {
   display: grid; grid-template-columns: auto auto; column-gap: 12px; align-items: baseline;
   padding: 6px 12px; border-radius: 12px;
@@ -236,10 +239,13 @@ optgroup option { color: var(--ink); }
 .rc-in b { color: var(--ink); font-weight: 800; }
 
 .top-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+/* Keep the News button's space while the news loads, so nothing shifts when it appears */
+#news-btn[hidden] { display: inline-flex !important; visibility: hidden; }
 /* Interactive map link: its own row under the header buttons, right-aligned */
-.map-row { flex-basis: 100%; display: flex; justify-content: flex-end; }
+/* Interactive map link: right end of the character tabs row */
 .map-link {
-  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 999px;
+  flex: none; align-self: center; margin-left: auto; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 999px;
   font-size: 0.8rem; font-weight: 800; text-decoration: none; color: #2dd4bf;
   background: rgba(45, 212, 191, 0.08); border: 1px solid rgba(45, 212, 191, 0.35);
   transition: background-color 0.15s, border-color 0.15s;
