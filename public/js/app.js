@@ -62,7 +62,9 @@
     ] },
     { key: 'pets', name: 'Pets', icon: 'paw', color: '#34d399', goal: 227 },
     { key: 'mounts', name: 'Mounts', icon: 'flag', color: '#60a5fa' },
-    { key: 'genus', name: 'Genus Insight', icon: 'book', color: '#c084fc', unit: 'level' },
+    { key: 'wings', name: 'Wings', icon: 'feather', color: '#a78bfa', goal: 116 },
+    { key: 'theostones', name: 'Theostones', icon: 'gem', color: '#fb923c', goal: 153 },
+    { key: 'genus', name: 'Pet Genius', icon: 'book', color: '#c084fc', unit: 'level' },
     { key: 'arcana', name: 'Arcana Cards', icon: 'sparkle', color: '#f472b6' },
     { key: 'clashrunes', name: 'Clash Runes', icon: 'gem', color: '#f05252' },
   ];
@@ -698,6 +700,7 @@
     crown: '<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
     bolt: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+    map: '<path d="M9 4L3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/>',
     gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
     chart: '<path d="M4 4v16h16"/><path d="M7 15l4-4 3 3 5-6"/>',
     image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
@@ -845,6 +848,8 @@
       ui: {
         active: isObj(raw.ui) && typeof raw.ui.active === 'string' ? raw.ui.active : 'overview',
         heatMonths: HEAT_RANGES.includes(num(isObj(raw.ui) && raw.ui.heatMonths)) ? num(raw.ui.heatMonths) : 1,
+        // Cards folded to just their header ("charId:roadmap" / "charId:path" -> true/false), per device.
+        folded: isObj(raw.ui) && isObj(raw.ui.folded) ? raw.ui.folded : {},
         newsSeenAt: num(isObj(raw.ui) && raw.ui.newsSeenAt, 0), // newest announcement this device has seen
         sideTab: (() => {
           const t = isObj(raw.ui) ? OLD_SIDE_TABS[raw.ui.sideTab] || raw.ui.sideTab : '';
@@ -1082,8 +1087,7 @@
           ${LOGO}
           <div>
             <h1>Aion 2 <span>Progress Tracker</span></h1>
-            <p>Times shown in your time zone: <b>${esc(USER_TZ)}</b></p>
-            <p class="sync-chip" id="sync-status" data-state="off" role="status" hidden></p>
+            <p class="brand-sub">Times shown in your time zone: <b>${esc(USER_TZ)}</b><span class="sync-chip" id="sync-status" data-state="off" role="status" hidden></span></p>
           </div>
         </div>
         <div class="resets">
@@ -1140,7 +1144,7 @@
     tabs.push(`<button class="tab tab-add" data-action="add-char" aria-label="Add character">${icon('plus')}</button>`);
     // Interactive map link at the right end of the tabs row.
     tabs.push(`<a class="map-link" href="https://interactivemap.app/aion2/maps/verteron" target="_blank" rel="noopener noreferrer"
-      title="Open the AION 2 interactive map in a new tab">${icon('pin')}<span>Interactive map</span>${icon('external')}</a>`);
+      title="Interactive map (opens in a new tab)" aria-label="Open the AION 2 interactive map in a new tab">${icon('map')}</a>`);
     $('#tabs').innerHTML = tabs.join('');
   }
 
@@ -1369,6 +1373,7 @@
     const done = infos.reduce((n, i) => n + i.done, 0);
     const pct = Math.round((done / ROADMAP_TOTAL) * 100);
     const ds = `data-char="${esc(c.id)}"`;
+    const folded = isFolded(c, 'roadmap');
     const phases = infos.map((i, idx) => {
       const p = i.p;
       return `<details class="rm-phase is-${i.status}" data-phase="${p.key}" data-char="${esc(c.id)}" ${open.has(p.key) ? 'open' : ''} style="--p:${i.pct}%">
@@ -1400,7 +1405,7 @@
         </div>
       </details>`;
     }).join('');
-    return `<section class="board roadmap">
+    return `<section class="board roadmap ${folded ? 'is-folded' : ''}">
       <header class="board-head">
         <div class="ring" style="--p:${pct}%" role="img" aria-label="${done} of ${ROADMAP_TOTAL} roadmap tasks done">
           <span><b>${pct}</b><small>%</small></span>
@@ -1412,12 +1417,22 @@
         </div>
         <div class="board-tools">
           <button class="btn ghost xs" data-action="open-guide">${icon('book')}Guide</button>
-          <button class="btn ghost xs" data-action="rm-expand" ${ds}>${icon('down')}${open.size === ROADMAP.length ? 'Collapse all' : 'Expand all'}</button>
+          ${folded ? '' : `<button class="btn ghost xs" data-action="rm-expand" ${ds}>${icon('down')}${open.size === ROADMAP.length ? 'Collapse all' : 'Expand all'}</button>`}
+          ${foldBtnHTML(c, 'roadmap', folded, 'leveling roadmap')}
         </div>
       </header>
-      <div class="rm-timeline">${phases}</div>
+      ${folded ? '' : `<div class="rm-timeline">${phases}</div>`}
     </section>`;
   }
+
+  // Whole-card fold (Leveling roadmap, Progression path): remembered per device in state.ui.folded.
+  // `auto` is the state used until the person chooses (the path starts folded once it's complete).
+  function isFolded(c, which, auto = false) {
+    const v = state.ui.folded[`${c.id}:${which}`];
+    return typeof v === 'boolean' ? v : auto;
+  }
+  const foldBtnHTML = (c, which, folded, label) => `<button class="tool-icon fold-card ${folded ? 'is-folded' : ''}" data-action="fold-card" data-char="${esc(c.id)}" data-value="${which}"
+    aria-expanded="${!folded}" title="${folded ? 'Show' : 'Hide'} the ${label}" aria-label="${folded ? 'Show' : 'Hide'} the ${label}">${icon(folded ? 'down' : 'up')}</button>`;
 
   // Remember which phases are open when someone opens/closes them ("toggle" doesn't bubble).
   document.addEventListener('toggle', e => {
@@ -1435,7 +1450,7 @@
       if (d.open) set.add(d.dataset.phase); else set.delete(d.dataset.phase);
       gpOpen.set(d.dataset.char, set);
       const btn = $(`[data-action="gp-expand"][data-char="${d.dataset.char}"]`);
-      if (btn) btn.setAttribute('aria-label', set.size === GEAR_PATH.length ? 'Collapse all stages' : 'Expand all stages');
+      if (btn) btn.innerHTML = `${icon('down')}${set.size === GEAR_PATH.length ? 'Collapse all' : 'Expand all'}`;
       return;
     }
     if (!d.matches || !d.matches('.rm-phase')) return;
@@ -1516,9 +1531,7 @@
     const allOpen = open.size === GEAR_PATH.length;
     // Like the one-time board: never resets, and folds its stages away once every step is done.
     const complete = total === GEAR_PATH_TOTAL;
-    const foldKey = c.id + ':path';
-    if (!complete) boardShown.delete(foldKey);
-    const folded = complete && !boardShown.has(foldKey);
+    const folded = isFolded(c, 'path', complete);
     return `<section class="board gear-path ${complete ? 'is-complete' : ''} ${folded ? 'is-folded' : ''}">
       <header class="board-head">
         <div class="ring" style="--p:${pct}%" role="img" aria-label="${total} of ${GEAR_PATH_TOTAL} steps done">
@@ -1530,10 +1543,9 @@
           <p class="board-reset">${next ? `${icon('flag')}Next: <b>${esc(next)}</b>` : `${icon('check')}Every step is done`} <span class="gp-noreset">${icon('infinity')}No reset</span></p>
         </div>
         <div class="board-tools">
-          ${folded ? '' : `<button class="tool-icon gp-expand ${allOpen ? 'is-open' : ''}" data-action="gp-expand" ${ds} title="Expand or collapse all stages" aria-label="${allOpen ? 'Collapse all stages' : 'Expand all stages'}">${icon('down')}</button>`}
+          ${folded ? '' : `<button class="btn ghost xs gp-expand" data-action="gp-expand" ${ds}>${icon('down')}${allOpen ? 'Collapse all' : 'Expand all'}</button>`}
           <button class="tool-icon" data-action="gp-reset" ${ds} title="Reset all" aria-label="Reset the progression path">${icon('refresh')}</button>
-          ${complete ? `<button class="tool-icon fold-btn" data-action="fold-board" ${ds} data-kind="path" aria-expanded="${!folded}"
-            title="${folded ? 'Show stages' : 'Hide stages'}" aria-label="${folded ? 'Show' : 'Hide'} the completed progression path">${icon(folded ? 'down' : 'up')}</button>` : ''}
+          ${foldBtnHTML(c, 'path', folded, 'progression path')}
         </div>
       </header>
       ${folded ? '' : `<div class="rm-timeline">${stages}</div>`}
@@ -2101,9 +2113,10 @@
   const counterDefs = kind => (kind === 'wallet' ? CURRENCIES : COLLECTIONS);
   // Every editable counter, with group parts listed on their own (they take the group's colour).
   const counterLeaves = kind => counterDefs(kind).flatMap(d => (d.parts ? d.parts.map(p => ({ ...p, color: d.color })) : [d]));
+  // A saved target wins; counters with a built-in target (e.g. Pets 227) fall back to it when none is saved.
   function counterGoal(c, kind, d) {
-    const g = c[kind].goals[d.key];
-    return g === undefined ? num(d.goal) : g;
+    const g = num(c[kind].goals[d.key]);
+    return g > 0 ? g : num(d.goal);
   }
 
   function counterHTML(c, kind) {
@@ -2149,7 +2162,7 @@
           <label class="field"><span>${d.unit === 'level' ? 'Level' : 'Amount'}</span>
             <input name="amount" type="number" min="0" inputmode="numeric" value="${num(c[kind].amounts[d.key]) || ''}" placeholder="0" autofocus></label>
           <label class="field"><span>Target (optional)</span>
-            <input name="goal" type="number" min="0" inputmode="numeric" value="${goal || ''}" placeholder="None"></label>
+            <input name="goal" type="number" min="0" inputmode="numeric" value="${goal || ''}" placeholder="${d.goal ? fmtInt(d.goal) : 'None'}"></label>
         </form>
         ${d.hint ? `<p class="fine">${esc(d.hint)}.</p>` : ''}`,
       footer: `<button type="button" class="btn ghost" data-m="cancel">Cancel</button>
@@ -2157,7 +2170,9 @@
       actions: {
         submit(form) {
           c[kind].amounts[d.key] = clamp(Math.round(num(form.elements.amount.value)), 0, COUNTER_MAX);
-          c[kind].goals[d.key] = clamp(Math.round(num(form.elements.goal.value)), 0, COUNTER_MAX);
+          // Only a target that differs from the built-in one is saved.
+          const goal = clamp(Math.round(num(form.elements.goal.value)), 0, COUNTER_MAX);
+          if (goal && goal !== num(d.goal)) c[kind].goals[d.key] = goal; else delete c[kind].goals[d.key];
           save();
           closeModal(m);
           render();
@@ -4316,6 +4331,15 @@
       rerender(el);
     },
     'share-card'(el) { const c = getChar(el.dataset.char); if (c) openShareCard(c); },
+    'fold-card'(el) {
+      const c = getChar(el.dataset.char);
+      if (!c) return;
+      const which = el.dataset.value;
+      const complete = which === 'path' && GEAR_PATH.every(s => gpKeys(s).every(k => c.path.done[k]));
+      state.ui.folded[`${c.id}:${which}`] = !isFolded(c, which, complete);
+      save({ sync: false }); // a per-device view preference
+      rerender(el);
+    },
     'fold-board'(el) {
       const key = el.dataset.char + ':' + el.dataset.kind;
       if (boardShown.has(key)) boardShown.delete(key); else boardShown.add(key);
@@ -4630,12 +4654,15 @@
     return 'Data is stored only in this browser.';
   }
 
+  // Short word shown beside the time zone; the full message is the tooltip and appears in the account menu.
+  const SYNC_SHORT = { connecting: 'Connecting…', saving: 'Saving…', synced: 'Synced', local: 'This device only', readonly: 'This device only', error: 'Sync error' };
   function setSyncStatus(kind, text) {
     const el = $('#sync-status');
     if (el) {
       el.hidden = false;
       el.dataset.state = kind;
-      el.textContent = text || SYNC_TEXT[kind] || '';
+      el.textContent = SYNC_SHORT[kind] || '';
+      el.title = text || SYNC_TEXT[kind] || '';
     }
     const avatarBtn = $('#account-btn');
     if (avatarBtn) avatarBtn.dataset.sync = kind; // colours the small dot on the avatar
@@ -4967,7 +4994,7 @@
       const status = $('#sync-status');
       const line = $('.am-sync', menu);
       line.dataset.state = status ? status.dataset.state : 'off';
-      $('span', line).textContent = status && status.textContent ? status.textContent : 'Signed in';
+      $('span', line).textContent = status && (status.title || status.textContent) ? (status.title || status.textContent) : 'Signed in';
     }
     menu.hidden = !open;
     btn.setAttribute('aria-expanded', String(open));

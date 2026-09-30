@@ -204,10 +204,11 @@ optgroup option { color: var(--ink); }
 .brand p { font-size: 0.74rem; color: var(--muted); margin-top: 2px; }
 .brand p b { color: var(--ink-2); font-weight: 700; }
 
+/* Time zone line with the sync status on the right, after a divider */
+.brand .brand-sub { display: flex; align-items: center; column-gap: 0.3em; flex-wrap: nowrap; white-space: nowrap; min-width: 0; }
 .brand .sync-chip {
-  /* width 0 + min-width 100%: fills the brand column without ever making it wider */
-  width: 0; min-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
-  display: flex; align-items: center; gap: 6px; margin-top: 4px;
+  display: inline-flex; align-items: center; gap: 5px; margin-left: 10px; padding-left: 10px;
+  border-left: 1px solid var(--line-strong); line-height: 1.1;
   font-size: 0.72rem; font-weight: 700; color: var(--muted);
 }
 .sync-chip::before {
@@ -244,20 +245,17 @@ optgroup option { color: var(--ink); }
 /* Keep the News button's space while the news loads, so nothing shifts when it appears */
 #news-btn[hidden] { display: inline-flex !important; visibility: hidden; }
 /* Same for the sync status line under the title, so the header height doesn't change once sign-in loads */
-#sync-status[hidden] { display: flex !important; visibility: hidden; }
-#sync-status:empty::after { content: "\00a0"; }
+#sync-status[hidden] { display: none !important; }
 /* Interactive map link: its own row under the header buttons, right-aligned */
-/* Interactive map link: right end of the character tabs row */
+/* Interactive map link: a round map button at the right end of the character tabs row */
 .map-link {
-  flex: none; align-self: center; margin-left: auto; white-space: nowrap;
-  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 999px;
-  font-size: 0.8rem; font-weight: 800; text-decoration: none; color: #2dd4bf;
-  background: rgba(45, 212, 191, 0.08); border: 1px solid rgba(45, 212, 191, 0.35);
-  transition: background-color 0.15s, border-color 0.15s;
+  flex: none; align-self: center; margin-left: auto;
+  display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; text-decoration: none; color: #2dd4bf;
+  background: rgba(45, 212, 191, 0.08); border: 1px solid rgba(45, 212, 191, 0.4);
+  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
-.map-link:hover { background: rgba(45, 212, 191, 0.16); border-color: rgba(45, 212, 191, 0.6); }
-.map-link .ico { width: 14px; height: 14px; }
-.map-link .ico:last-child { width: 12px; height: 12px; opacity: 0.75; }
+.map-link:hover { background: rgba(45, 212, 191, 0.18); border-color: rgba(45, 212, 191, 0.7); box-shadow: 0 0 14px rgba(45, 212, 191, 0.25); }
+.map-link .ico { width: 18px; height: 18px; }
 [data-theme="light"] .map-link { color: #0f766e; }
 
 .update-banner {
@@ -1487,8 +1485,10 @@ optgroup option { color: var(--ink); }
 .gp-noreset .ico { width: 13px; height: 13px; }
 .gp-owner { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; color: var(--gold); }
 .gp-owner .ico { width: 13px; height: 13px; }
-.gp-expand .ico { transition: transform 0.2s; }
-.gp-expand.is-open .ico { transform: rotate(180deg); }
+/* Fold a whole card (Leveling roadmap, Progression path) down to its header */
+.board.is-folded .board-head { border-bottom: 0; padding-bottom: 0; margin-bottom: 0; }
+.board.is-complete .fold-card { color: var(--ok); border-color: rgba(52, 211, 153, 0.4); background: rgba(52, 211, 153, 0.08); }
+.board.roadmap .board-tools, .board.gear-path .board-tools { align-items: center; }
 .gp-steps, .gp-subs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .gp-item {
   display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 9px 12px; border-radius: 10px;
