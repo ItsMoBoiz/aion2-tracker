@@ -33,7 +33,32 @@
   // Spacetime Rift alert options (minutes before a portal opens; sounds are synthesised).
   const RIFT_LEADS = [0, 1, 2, 5, 10];
   const RIFT_SOUNDS = [['chime', 'Chime'], ['bell', 'Bell'], ['arcane', 'Arcane'], ['horn', 'War horn'], ['ping', 'Ping'], ['none', 'No sound']];
-  const SIDE_TABS = [['roadmap', 'Roadmap'], ['history', 'History'], ['notes', 'Notes'], ['stats', 'Stats'], ['gear', 'Gear'], ['calc', 'Calculations']];
+  const SIDE_TABS = [['roadmap', 'Roadmap'], ['history', 'History'], ['notes', 'Notes'], ['stats', 'Stats'], ['gear', 'Gear'], ['calc', 'Calculations'],
+    ['growth', 'Growth'], ['wallet', 'Currency'], ['collect', 'Collections']];
+  // AION 2 global launch: 30 September 2026, 16:00 Qatar time (AST, UTC+3).
+  const LAUNCH_AT = Date.parse('2026-09-30T16:00:00+03:00');
+  // Odyle Energy: stores up to 840 and refills 15 every 3 hours; one reward cube costs 40.
+  const ODYLE = { max: 840, per: 15, every: 3 * 36e5, cube: 40 };
+  // Currency tracker (per character). `goal` is a default target the player can change.
+  const CURRENCIES = [
+    { key: 'kinah', name: 'Kinah', icon: 'coin', color: '#f5c96a' },
+    { key: 'abyss', name: 'Abyss Points', icon: 'gem', color: '#c084fc', goal: 200000, hint: 'About 200k buys the tier 1 rings, earrings and necklace' },
+    { key: 'enhance', name: 'Enhancement Stones', icon: 'sparkle', color: '#60a5fa' },
+    { key: 'petcrystal', name: 'Pet Crystals', icon: 'paw', color: '#34d399' },
+    { key: 'cubekey', name: 'Cube Keys', icon: 'key', color: '#fb923c' },
+    { key: 'stigma', name: 'Stigma Shards', icon: 'gem', color: '#f472b6' },
+    { key: 'daevanion', name: 'Daevanion Crystals', icon: 'sparkle', color: '#2dd4bf' },
+  ];
+  // Collections (per character): counters with an optional target.
+  const COLLECTIONS = [
+    { key: 'feathers', name: 'Feathers', icon: 'feather', color: '#fbbf24', goal: 190, hint: 'Deliver about 190 for amulet materials, then collect the rest' },
+    { key: 'pets', name: 'Pets', icon: 'paw', color: '#34d399' },
+    { key: 'mounts', name: 'Mounts', icon: 'flag', color: '#60a5fa' },
+    { key: 'genus', name: 'Genus Insight', icon: 'book', color: '#c084fc', unit: 'level' },
+    { key: 'arcana', name: 'Arcana Cards', icon: 'sparkle', color: '#f472b6' },
+    { key: 'clashrunes', name: 'Clash Runes', icon: 'gem', color: '#f05252' },
+  ];
+  const COUNTER_MAX = 999999999;
   // Personal notes. Limits keep the synced save well inside the storage's document size.
   const NOTES_MAX = 100;
   const NOTE_LEN = 1000;
@@ -470,6 +495,15 @@
     infinity: '<path d="M7 8.5c-2 0-3.5 1.6-3.5 3.5S5 15.5 7 15.5c3.5 0 6.5-7 10-7 2 0 3.5 1.6 3.5 3.5s-1.5 3.5-3.5 3.5c-3.5 0-6.5-7-10-7z"/>',
     crown: '<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+    bolt: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+    chart: '<path d="M4 4v16h16"/><path d="M7 15l4-4 3 3 5-6"/>',
+    image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
+    share: '<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.9l7.6-4.3M8.2 13.1l7.6 4.3"/>',
+    key: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/>',
+    feather: '<path d="M20 4C12 4 6 10 6 18v2h2c8 0 12-6 12-16z"/><path d="M4 22l10-10"/>',
+    trophy: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 21h8M10 17h4v4h-4z"/>',
+    copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+    rocket: '<path d="M5 15c-1.5 1.5-2 5-2 5s3.5-.5 5-2"/><path d="M9 15l-3-3c1-4 5-9 12-9 0 7-5 11-9 12z"/><circle cx="14.5" cy="9.5" r="1.5"/><path d="M9 12l-3-1-2 2 4 1M12 15l1 3-2 2-1-4"/>',
     pin: '<path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.01"/>',
     infoMark: '<path d="M12 10.5v7M12 6.5v.01"/>', // just the "i", for use inside a round button
@@ -543,7 +577,23 @@
       static: { prog: isObj(c.static && c.static.prog) ? c.static.prog : {} }, // one-time: never resets
       roadmap: { done: isObj(c.roadmap && c.roadmap.done) ? c.roadmap.done : {} }, // leveling roadmap ticks
       path: { done: isObj(c.path && c.path.done) ? c.path.done : {} }, // progression path ticks
+      // Odyle Energy as last entered: `value` at time `at` (0 = never set). Refill is worked out from there.
+      odyle: { value: clamp(Math.round(num(c.odyle && c.odyle.value)), 0, ODYLE.max), at: num(c.odyle && c.odyle.at) },
+      // Combat Power / Gear Score over time: one point per game day it changed.
+      growth: (Array.isArray(c.growth) ? c.growth : []).filter(p => isObj(p) && num(p.t))
+        .map(p => ({ t: num(p.t), cp: Math.round(num(p.cp)), gs: Math.round(num(p.gs)) })).slice(-400),
+      wallet: normCounters(c.wallet),
+      collect: normCounters(c.collect),
     };
+  }
+
+  function normCounters(x) {
+    const pick = o => {
+      const out = {};
+      if (isObj(o)) for (const [k, v] of Object.entries(o)) if (Number.isFinite(Number(v))) out[k] = clamp(Math.round(Number(v)), 0, COUNTER_MAX);
+      return out;
+    };
+    return { amounts: pick(x && x.amounts), goals: pick(x && x.goals) };
   }
 
   // Fills in anything missing so that data saved by older versions of the app keeps working.
@@ -566,6 +616,7 @@
         tz: validTz(rs.tz) ? rs.tz : d.settings.tz,
         theme: rs.theme === 'light' ? 'light' : 'dark', // dark is the default look
         riftAlert: normRiftAlert(rs.riftAlert),
+        odyleAlert: !!rs.odyleAlert, // alert when a character's Odyle Energy is full
         daily: normTime(rs.daily, d.settings.daily),
         weekly: {
           weekday: clamp(Math.round(num(rs.weekly && rs.weekly.weekday, 3)), 0, 6),
@@ -618,7 +669,7 @@
   let saveWarned = false;
   function save(opts = {}) {
     const sync = opts.sync !== false;
-    if (sync) state.updatedAt = Date.now();
+    if (sync) { state.updatedAt = Date.now(); recordGrowth(); }
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify(state));
       saveWarned = false;
@@ -830,6 +881,11 @@
           </div>
         </div>
         <div class="resets">
+          <div class="reset-chip launch-chip" id="launch-chip" hidden>
+            <span class="rc-label">${icon('rocket')} <span data-launch="label">AION 2 launch</span></span>
+            <span class="rc-when" data-launch="when"></span>
+            <span class="rc-in" data-launch="in"></span>
+          </div>
           <div class="reset-chip daily">
             <span class="rc-label">${icon('clock')} Daily reset</span>
             <span class="rc-when" data-when="daily"></span>
@@ -1014,6 +1070,7 @@
           ${icon('flag')}<span>Roadmap</span>${bar(Math.round((done / ROADMAP_TOTAL) * 100), `Leveling roadmap for ${c.name}`)}<b>${done}<i>/${ROADMAP_TOTAL}</i></b>
         </div>`;
       })()}
+      ${odyleLineHTML(c)}
     </article>`;
   }
 
@@ -1383,6 +1440,7 @@
           </div>
           <div class="hero-actions">
             ${c.role === 'main' ? '' : `<button class="btn ghost sm" data-action="make-main" data-char="${esc(c.id)}">${icon('crown')}Make main</button>`}
+            <button class="hero-icon" data-action="share-card" data-char="${esc(c.id)}" title="Share card (image)" aria-label="Make a share image of ${esc(c.name)}">${icon('share')}</button>
             <button class="hero-icon" data-action="edit-char" data-char="${esc(c.id)}" title="Edit character" aria-label="Edit ${esc(c.name)}">${icon('edit')}</button>
             <button class="hero-icon danger" data-action="delete-char" data-char="${esc(c.id)}" title="Delete character" aria-label="Delete ${esc(c.name)}">${icon('trash')}</button>
           </div>
@@ -1394,12 +1452,15 @@
 
       <aside class="detail-side">
         <div class="cp-strip" id="cp-strip">${cpStripHTML(c)}</div>
+        ${odyleCardHTML(c)}
         <div class="seg side-tabs" role="tablist" aria-label="Character details">
           ${SIDE_TABS.map(([key, label]) => `<button class="seg-btn ${side === key ? 'is-active' : ''}" role="tab" aria-selected="${side === key}"
             data-action="side-tab" data-value="${key}" data-char="${esc(c.id)}">${label}${key === 'stats' && draft ? ' <i class="dot-warn" title="Unsaved changes"></i>' : ''}${key === 'notes' && notesFor(c.id).length ? ` <span class="tab-count">${notesFor(c.id).length}</span>` : ''}</button>`).join('')}
         </div>
         ${side === 'history' ? `<article class="panel heat">${heatmapHTML(c)}</article>` : ''}
         ${side === 'calc' ? `<article class="panel" id="calc-panel">${calcHTML(c)}</article>` : ''}
+        ${side === 'growth' ? `<article class="panel growth">${growthHTML(c)}</article>` : ''}
+        ${side === 'wallet' || side === 'collect' ? `<article class="panel">${counterHTML(c, side)}</article>` : ''}
         ${side === 'roadmap' ? `<article class="panel rm-panel">${roadmapHTML(c)}</article>
           ${c.role === 'main' ? `<article class="panel rm-panel gp-panel">${gearPathHTML(c)}</article>` : ''}` : ''}
         ${side === 'notes' ? `<article class="panel">
@@ -1577,6 +1638,535 @@
         },
       },
     });
+  }
+
+  /* ---------- 7e. Odyle Energy refill timer ----------
+     The player enters their current Odyle Energy; from then on it refills by 15 every 3 hours
+     (counted from the moment it was entered) up to 840. Shown live on the character page and the
+     overview cards, with an optional alert when it's full. */
+  const ODYLE_ALERTED_KEY = 'aion2-odyle-alerted'; // charId -> full time already alerted, shared by open tabs
+
+  function odyleNow(c, now = Date.now()) {
+    const o = c.odyle;
+    if (!o.at) return null;
+    const ticks = Math.max(0, Math.floor((now - o.at) / ODYLE.every));
+    return Math.min(ODYLE.max, o.value + ticks * ODYLE.per);
+  }
+
+  function odyleFullAt(c) {
+    const o = c.odyle;
+    if (!o.at) return 0;
+    if (o.value >= ODYLE.max) return o.at;
+    return o.at + Math.ceil((ODYLE.max - o.value) / ODYLE.per) * ODYLE.every;
+  }
+
+  // Sets a new value, keeping the refill rhythm when `keepPhase` (e.g. after spending some).
+  function setOdyle(c, value, keepPhase) {
+    const now = Date.now();
+    let at = now;
+    if (keepPhase && c.odyle.at && odyleNow(c, now) < ODYLE.max) {
+      at = c.odyle.at + Math.floor((now - c.odyle.at) / ODYLE.every) * ODYLE.every; // last refill tick
+    }
+    c.odyle = { value: clamp(Math.round(num(value)), 0, ODYLE.max), at };
+  }
+
+  function odyleStatus(c, now = Date.now()) {
+    const v = odyleNow(c, now);
+    if (v == null) return null;
+    const full = odyleFullAt(c);
+    const next = v >= ODYLE.max ? 0 : c.odyle.at + (Math.floor((now - c.odyle.at) / ODYLE.every) + 1) * ODYLE.every;
+    return {
+      v, pct: Math.round((v / ODYLE.max) * 100), cubes: Math.floor(v / ODYLE.cube),
+      when: v >= ODYLE.max ? 'Full — spend it before it goes to waste' : `Full in ${fmtDur(full - now)} · ${fmtWhen.format(full)}`,
+      next: next ? `+${ODYLE.per} in ${fmtDur(next - now)}` : '',
+    };
+  }
+
+  function odyleCardHTML(c) {
+    const ds = `data-char="${esc(c.id)}"`;
+    const s = odyleStatus(c);
+    if (!s) {
+      return `<div class="odyle-card is-unset">
+        <div class="od-top"><span class="od-label">${icon('bolt')}Odyle Energy</span></div>
+        <p class="od-when">Enter your current Odyle Energy to see when it's full (refills ${ODYLE.per} every 3 hours, up to ${fmtInt(ODYLE.max)}).</p>
+        <button class="btn ghost sm" data-action="edit-odyle" ${ds}>${icon('bolt')}Set Odyle Energy</button>
+      </div>`;
+    }
+    return `<div class="odyle-card ${s.v >= ODYLE.max ? 'is-full' : ''}" data-odyle-card="${esc(c.id)}">
+      <div class="od-top">
+        <span class="od-label">${icon('bolt')}Odyle Energy${state.settings.odyleAlert ? `<span class="od-bell" title="Alert when full is on">${icon('bell')}</span>` : ''}</span>
+        <span class="od-tools">
+          <button class="od-spend" data-action="odyle-spend" ${ds} title="Used one reward cube (−${ODYLE.cube})" ${s.v < ODYLE.cube ? 'disabled' : ''}>−${ODYLE.cube}</button>
+          <button class="icon-btn xs" data-action="edit-odyle" ${ds} title="Update Odyle Energy" aria-label="Update Odyle Energy">${icon('edit')}</button>
+        </span>
+      </div>
+      <div class="od-val"><b data-odyle="val">${fmtInt(s.v)}</b><small>/ ${fmtInt(ODYLE.max)}</small>
+        <span class="od-cubes" data-odyle="cubes" title="Reward cubes you can open (${ODYLE.cube} each)">${s.cubes} cube${s.cubes === 1 ? '' : 's'}</span></div>
+      <div class="od-bar"><i data-odyle="bar" style="width:${s.pct}%"></i></div>
+      <p class="od-when"><span data-odyle="when">${esc(s.when)}</span><span class="od-next" data-odyle="next">${esc(s.next)}</span></p>
+    </div>`;
+  }
+
+  // Overview card line.
+  function odyleLineHTML(c) {
+    const s = odyleStatus(c);
+    if (!s) return '';
+    return `<div class="static-line odyle-line ${s.v >= ODYLE.max ? 'is-complete' : ''}" data-odyle-line="${esc(c.id)}" title="Odyle Energy · ${esc(s.when)}">
+      ${icon('bolt')}<span>Odyle</span>${bar(s.pct, `Odyle Energy for ${c.name}`)}<b>${fmtInt(s.v)}<i>/${fmtInt(ODYLE.max)}</i></b>
+    </div>`;
+  }
+
+  // Called every second with the clocks.
+  function updateOdyle(now) {
+    for (const card of $$('[data-odyle-card]')) {
+      const c = getChar(card.dataset.odyleCard);
+      const s = c && odyleStatus(c, now);
+      if (!s) continue;
+      $('[data-odyle="val"]', card).textContent = fmtInt(s.v);
+      $('[data-odyle="cubes"]', card).textContent = `${s.cubes} cube${s.cubes === 1 ? '' : 's'}`;
+      $('[data-odyle="bar"]', card).style.width = s.pct + '%';
+      $('[data-odyle="when"]', card).textContent = s.when;
+      $('[data-odyle="next"]', card).textContent = s.next;
+      card.classList.toggle('is-full', s.v >= ODYLE.max);
+      const spend = $('.od-spend', card);
+      if (spend) spend.disabled = s.v < ODYLE.cube;
+    }
+    for (const line of $$('[data-odyle-line]')) {
+      const c = getChar(line.dataset.odyleLine);
+      const s = c && odyleStatus(c, now);
+      if (!s) continue;
+      $('.bar span', line).style.width = s.pct + '%';
+      $('b', line).innerHTML = `${fmtInt(s.v)}<i>/${fmtInt(ODYLE.max)}</i>`;
+      line.classList.toggle('is-complete', s.v >= ODYLE.max);
+    }
+    checkOdyleAlert(now);
+  }
+
+  function checkOdyleAlert(now) {
+    if (!state.settings.odyleAlert) return;
+    let seen = {};
+    try { seen = JSON.parse(localStorage.getItem(ODYLE_ALERTED_KEY) || '{}') || {}; } catch (e) { /* storage blocked */ }
+    for (const c of state.characters) {
+      const full = odyleFullAt(c);
+      // Only when it filled up after being entered, and not for something that filled long ago.
+      if (!full || full <= c.odyle.at || now < full || now - full > 12 * 36e5 || seen[c.id] === full) continue;
+      seen[c.id] = full;
+      try { localStorage.setItem(ODYLE_ALERTED_KEY, JSON.stringify(seen)); } catch (e) { /* ignore */ }
+      const a = state.settings.riftAlert;
+      const msg = `${c.name}'s Odyle Energy is full (${fmtInt(ODYLE.max)}). Spend it before it goes to waste.`;
+      playRiftSound(a.sound === 'none' ? 'chime' : a.sound, a.volume);
+      toast(msg, { type: 'ok', timeout: 15000 });
+      if (a.desktop && 'Notification' in window && Notification.permission === 'granted') {
+        try { new Notification('Odyle Energy full', { body: msg, tag: 'aion2-odyle-' + c.id, icon: 'assets/logo.svg' }); } catch (e) { /* ignore */ }
+      }
+    }
+  }
+
+  function openOdyleModal(c) {
+    const cur = odyleNow(c);
+    const m = openModal({
+      title: `Odyle Energy — ${c.name}`,
+      size: 'sm',
+      body: `<form id="odyle-form" novalidate>
+          <label class="field"><span>Current Odyle Energy</span>
+            <input name="value" type="number" min="0" max="${ODYLE.max}" inputmode="numeric" value="${cur == null ? '' : cur}" placeholder="0–${ODYLE.max}" autofocus></label>
+          <div class="btn-row od-quick">
+            <button type="button" class="btn ghost xs" data-m="od-set" data-value="0">Empty</button>
+            <button type="button" class="btn ghost xs" data-m="od-set" data-value="${ODYLE.max / 2}">Half</button>
+            <button type="button" class="btn ghost xs" data-m="od-set" data-value="${ODYLE.max}">Full (${fmtInt(ODYLE.max)})</button>
+          </div>
+          <label class="check-row"><input type="checkbox" name="alert" ${state.settings.odyleAlert ? 'checked' : ''}> Alert me when a character's Odyle Energy is full</label>
+        </form>
+        <p class="fine">Copy the number from the game. It refills by ${ODYLE.per} every 3 hours up to ${fmtInt(ODYLE.max)}, counted from now. One reward cube costs ${ODYLE.cube}.
+          The alert uses the sound and desktop setting of the portal alert, and needs the site open in a tab.</p>`,
+      footer: `<button type="button" class="btn ghost" data-m="cancel">Cancel</button>
+               <button type="submit" form="odyle-form" class="btn primary">Save</button>`,
+      actions: {
+        'od-set'(b) { $('input[name="value"]', m).value = b.dataset.value; },
+        submit(form) {
+          const raw = form.elements.value.value.trim();
+          if (raw === '') c.odyle = { value: 0, at: 0 };
+          else setOdyle(c, raw, false);
+          state.settings.odyleAlert = form.elements.alert.checked;
+          if (state.settings.odyleAlert) getAudio(); // unlock sound while we have a click
+          save();
+          closeModal(m);
+          render();
+          toast(raw === '' ? 'Odyle Energy cleared.' : 'Odyle Energy saved. The timer is running.', { type: 'ok' });
+        },
+      },
+    });
+  }
+
+  /* ---------- 7f. Combat Power / Gear Score growth ----------
+     One point per game day in which the value changed (the last value of the day is kept). */
+  function recordGrowth() {
+    for (const c of state.characters) {
+      const cp = Math.round(num(effectiveCp(c))), gs = calc(c).gearScore;
+      if (!cp && !gs) continue;
+      const t = c.daily.period || Date.now();
+      const g = c.growth, last = g[g.length - 1];
+      if (last && last.t === t) { last.cp = cp; last.gs = gs; }
+      else if (!last || last.cp !== cp || last.gs !== gs) g.push({ t, cp, gs });
+      if (g.length > 400) g.splice(0, g.length - 400);
+    }
+  }
+
+  let growthSeries = 'cp';
+  let growthRange = 90; // days; 0 = everything
+  const fmtShortDay = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
+
+  function growthHTML(c) {
+    const key = growthSeries;
+    const label = key === 'cp' ? 'Combat Power' : 'Gear Score';
+    const since = growthRange ? Date.now() - growthRange * 864e5 : 0;
+    const pts = c.growth.filter(p => p.t >= since && (p[key] > 0));
+    const head = `<header class="panel-head"><h3>Growth</h3>
+        <div class="cp-mode" role="radiogroup" aria-label="Value shown">
+          ${[['cp', 'CP'], ['gs', 'GS']].map(([k, l]) => `<button type="button" role="radio" aria-checked="${key === k}" class="${key === k ? 'is-active' : ''}" data-action="growth-series" data-value="${k}">${l}</button>`).join('')}
+        </div></header>
+      <div class="range-pills" role="radiogroup" aria-label="Period shown">
+        ${[[30, '30 days'], [90, '90 days'], [0, 'All']].map(([d, l]) => `<button type="button" role="radio" class="range-pill ${growthRange === d ? 'is-active' : ''}" aria-checked="${growthRange === d}" data-action="growth-range" data-value="${d}">${l}</button>`).join('')}
+      </div>`;
+    if (pts.length < 2) {
+      const now = key === 'cp' ? effectiveCp(c) : calc(c).gearScore;
+      return `${head}<div class="growth-empty">${icon('chart')}
+        <p><b>${now ? fmtInt(now) : '—'}</b> ${label} ${now ? 'today' : 'not set yet'}</p>
+        <p class="fine">A point is saved each game day your ${label} changes. The line appears once there are two different days${growthRange ? ' in this period' : ''}.</p></div>`;
+    }
+    const vals = pts.map(p => p[key]);
+    const first = vals[0], lastV = vals[vals.length - 1];
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    if (lo === hi) { lo -= 1; hi += 1; }
+    const padV = (hi - lo) * 0.12; lo = Math.max(0, lo - padV); hi += padV;
+    const W = 320, H = 150, L = 40, R = 10, T = 10, B = 22;
+    const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+    const x = t => L + ((t - t0) / Math.max(1, t1 - t0)) * (W - L - R);
+    const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+    const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.t).toFixed(1)},${y(p[key]).toFixed(1)}`).join(' ');
+    const area = `${line} L${x(t1).toFixed(1)},${H - B} L${x(t0).toFixed(1)},${H - B} Z`;
+    const ticks = [lo, (lo + hi) / 2, hi].map(v => Math.round(v));
+    const color = key === 'cp' && lastV ? cpTier(lastV).color : '#8aa4ff';
+    const diff = lastV - first;
+    const best = Math.max(...vals);
+    return `${head}
+      <div class="growth-now" style="--gc:${color}"><b>${fmtInt(lastV)}</b><small>${label}</small>
+        <span class="delta ${diff > 0 ? 'up' : diff < 0 ? 'down' : ''}">${diff > 0 ? '+' : ''}${fmtInt(diff)} since ${esc(fmtShortDay.format(pts[0].t))}</span></div>
+      <svg class="growth-chart" viewBox="0 0 ${W} ${H}" style="--gc:${color}" role="img" aria-label="${label} from ${fmtInt(first)} to ${fmtInt(lastV)} over ${pts.length} days">
+        <defs><linearGradient id="gfill-${esc(c.id)}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity="0.35"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+        ${ticks.map(v => `<line class="gc-grid" x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text class="gc-y" x="${L - 6}" y="${(y(v) + 3.5).toFixed(1)}" text-anchor="end">${esc(fmtInt(v))}</text>`).join('')}
+        <path d="${area}" fill="url(#gfill-${esc(c.id)})"/>
+        <path d="${line}" class="gc-line" fill="none"/>
+        ${pts.map(p => `<circle class="gc-pt" cx="${x(p.t).toFixed(1)}" cy="${y(p[key]).toFixed(1)}" r="2.2"><title>${esc(fmtShortDay.format(p.t))}: ${esc(fmtInt(p[key]))}</title></circle>`).join('')}
+        <circle class="gc-end" cx="${x(t1).toFixed(1)}" cy="${y(lastV).toFixed(1)}" r="4.5"/>
+        <text class="gc-x" x="${L}" y="${H - 6}">${esc(fmtShortDay.format(t0))}</text>
+        <text class="gc-x" x="${W - R}" y="${H - 6}" text-anchor="end">${esc(fmtShortDay.format(t1))}</text>
+      </svg>
+      <dl class="kv">
+        <div><dt>Best</dt><dd>${fmtInt(best)}</dd></div>
+        <div><dt>Days logged</dt><dd>${pts.length}</dd></div>
+        <div><dt>Average gain per day</dt><dd>${fmtNum(diff / Math.max(1, (t1 - t0) / 864e5))}</dd></div>
+      </dl>`;
+  }
+
+  /* ---------- 7g. Currency tracker and collections ----------
+     Simple per-character counters the player updates; some have a default target. */
+  const counterDefs = kind => (kind === 'wallet' ? CURRENCIES : COLLECTIONS);
+  function counterGoal(c, kind, d) {
+    const g = c[kind].goals[d.key];
+    return g === undefined ? num(d.goal) : g;
+  }
+
+  function counterHTML(c, kind) {
+    const wallet = kind === 'wallet';
+    const ds = `data-char="${esc(c.id)}" data-kind="${kind}"`;
+    return `<header class="panel-head"><h3>${wallet ? 'Currency' : 'Collections'}</h3>
+        <span class="fine">${wallet ? 'Update from your inventory' : 'Tap + as you collect'}</span></header>
+      <ul class="counters">
+        ${counterDefs(kind).map(d => {
+          const v = num(c[kind].amounts[d.key]);
+          const goal = counterGoal(c, kind, d);
+          const pct = goal ? Math.min(100, Math.round((v / goal) * 100)) : 0;
+          return `<li class="counter ${goal && v >= goal ? 'is-done' : ''}" style="--ic:${d.color}">
+            <span class="ct-ico">${icon(d.icon)}</span>
+            <div class="ct-body">
+              <div class="ct-top"><span class="ct-name">${esc(d.name)}</span>
+                <b class="ct-val">${d.unit === 'level' ? 'Lv ' : ''}${fmtInt(v)}${goal ? `<i> / ${fmtInt(goal)}</i>` : ''}</b></div>
+              ${goal ? `<div class="ct-bar"><i style="width:${pct}%"></i></div>` : ''}
+              ${d.hint && goal ? `<small class="ct-hint">${esc(d.hint)}</small>` : ''}
+            </div>
+            <span class="ct-tools">
+              ${wallet ? '' : `<button class="icon-btn xs" data-action="counter-step" ${ds} data-value="${d.key}" title="Add one" aria-label="Add one ${esc(d.name)}">${icon('plus')}</button>`}
+              <button class="icon-btn xs" data-action="edit-counter" ${ds} data-value="${d.key}" title="Edit ${esc(d.name)}" aria-label="Edit ${esc(d.name)}">${icon('edit')}</button>
+            </span>
+          </li>`;
+        }).join('')}
+      </ul>`;
+  }
+
+  function openCounterModal(c, kind, key) {
+    const d = counterDefs(kind).find(x => x.key === key);
+    if (!d) return;
+    const goal = counterGoal(c, kind, d);
+    const m = openModal({
+      title: `${d.name} — ${c.name}`,
+      size: 'sm',
+      body: `<form id="counter-form" class="form-grid" novalidate>
+          <label class="field"><span>${d.unit === 'level' ? 'Level' : 'Amount'}</span>
+            <input name="amount" type="number" min="0" inputmode="numeric" value="${num(c[kind].amounts[d.key]) || ''}" placeholder="0" autofocus></label>
+          <label class="field"><span>Target (optional)</span>
+            <input name="goal" type="number" min="0" inputmode="numeric" value="${goal || ''}" placeholder="None"></label>
+        </form>
+        ${d.hint ? `<p class="fine">${esc(d.hint)}.</p>` : ''}`,
+      footer: `<button type="button" class="btn ghost" data-m="cancel">Cancel</button>
+               <button type="submit" form="counter-form" class="btn primary">Save</button>`,
+      actions: {
+        submit(form) {
+          c[kind].amounts[d.key] = clamp(Math.round(num(form.elements.amount.value)), 0, COUNTER_MAX);
+          c[kind].goals[d.key] = clamp(Math.round(num(form.elements.goal.value)), 0, COUNTER_MAX);
+          save();
+          closeModal(m);
+          render();
+        },
+      },
+    });
+  }
+
+  /* ---------- 7h. Share card ----------
+     Draws the character as a 1200×630 image (class emblem, CP tier, Gear Score, progress) that can
+     be downloaded or copied, e.g. to post in Discord. */
+  const hexA = (hex, a) => {
+    const h = String(hex).replace('#', '');
+    const n = parseInt(h.length === 3 ? h.replace(/./g, ch => ch + ch) : h, 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+  };
+
+  function rrect(g, x, y, w, h, r) {
+    g.beginPath();
+    if (g.roundRect) { g.roundRect(x, y, w, h, r); return; }
+    g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+  }
+
+  async function renderShareCard(c) {
+    const W = 1200, H = 630;
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const g = cv.getContext('2d');
+    try { await document.fonts.load('900 64px "Nunito Sans"'); await document.fonts.ready; } catch (e) { /* system font */ }
+    const F = (w, s) => `${w} ${s}px "Nunito Sans", system-ui, "Segoe UI", sans-serif`;
+    const spaced = px => { if ('letterSpacing' in g) g.letterSpacing = px; };
+    const cc = classColor(c);
+    const cp = Math.round(num(effectiveCp(c)));
+    const k = calc(c);
+    const tier = cp ? cpTier(cp) : null;
+    const tc = tier ? tier.color : '#8aa4ff';
+
+    // Background with class and tier glows
+    g.fillStyle = '#0a0d17'; g.fillRect(0, 0, W, H);
+    let rg = g.createRadialGradient(160, 120, 0, 160, 120, 760);
+    rg.addColorStop(0, hexA(cc, 0.38)); rg.addColorStop(1, 'rgba(10,13,23,0)');
+    g.fillStyle = rg; g.fillRect(0, 0, W, H);
+    rg = g.createRadialGradient(1100, 620, 0, 1100, 620, 620);
+    rg.addColorStop(0, hexA(tc, 0.3)); rg.addColorStop(1, 'rgba(10,13,23,0)');
+    g.fillStyle = rg; g.fillRect(0, 0, W, H);
+    rrect(g, 14, 14, W - 28, H - 28, 30); g.strokeStyle = 'rgba(255,255,255,0.09)'; g.lineWidth = 2; g.stroke();
+
+    // Class emblem
+    const ex = 64, ey = 60, es = 150;
+    const eg = g.createLinearGradient(ex, ey, ex + es, ey + es);
+    eg.addColorStop(0, hexA(cc, 1)); eg.addColorStop(1, hexA(cc, 0.45));
+    rrect(g, ex, ey, es, es, 36); g.fillStyle = eg; g.fill();
+    if (c.role === 'main') { g.lineWidth = 5; g.strokeStyle = '#f5c96a'; g.stroke(); }
+    const canon = canonClass(c.cls);
+    if (CLASS_EMBLEMS[canon]) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="200" height="200" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${CLASS_EMBLEMS[canon]}</svg>`;
+      const img = new Image();
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      try { await img.decode(); g.drawImage(img, ex + 25, ey + 25, es - 50, es - 50); } catch (e) { /* skip emblem */ }
+    } else {
+      g.fillStyle = '#fff'; g.font = F(900, 64); g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(initials(c.name), ex + es / 2, ey + es / 2 + 4);
+    }
+
+    // Name, role and details
+    g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+    g.fillStyle = '#ffffff'; g.font = F(900, 68);
+    const name = String(c.name).slice(0, 22);
+    g.fillText(name, 250, 128);
+    if (c.role === 'main') {
+      const nx = 250 + g.measureText(name).width + 22;
+      g.font = F(900, 22); spaced('3px');
+      const tw = g.measureText('MAIN').width + 34;
+      rrect(g, nx, 90, tw, 40, 20); g.fillStyle = '#f5c96a'; g.fill();
+      g.fillStyle = '#2a1a00'; g.fillText('MAIN', nx + 17, 118); spaced('0px');
+    }
+    g.fillStyle = '#9aa4c2'; g.font = F(700, 30);
+    g.fillText([`Lv ${c.level}`, c.cls, c.race, c.server].filter(Boolean).join('  ·  '), 252, 182);
+
+    // Combat Power
+    g.fillStyle = '#9aa4c2'; g.font = F(900, 22); spaced('4px');
+    g.fillText('COMBAT POWER', 64, 296); spaced('0px');
+    g.fillStyle = '#ffffff'; g.font = F(900, 120);
+    const cpText = cp ? fmtInt(cp) : '—';
+    g.fillText(cpText, 60, 408);
+    if (tier) {
+      const px = 60 + g.measureText(cpText).width + 30;
+      g.font = F(900, 26); spaced('2px');
+      const label = tier.name.toUpperCase();
+      const tw = g.measureText(label).width + 40;
+      rrect(g, px, 346, tw, 50, 25); g.fillStyle = hexA(tc, 0.18); g.fill();
+      g.strokeStyle = hexA(tc, 0.7); g.lineWidth = 2; g.stroke();
+      g.fillStyle = tc; g.fillText(label, px + 20, 380); spaced('0px');
+      // Tier track
+      const tx = 64, ty = 432, tw2 = W - 128, seg = (tw2 - 3 * 10) / CP_TIERS.length;
+      CP_TIERS.forEach((t, i) => {
+        const sx = tx + i * (seg + 10);
+        rrect(g, sx, ty, seg, 14, 7); g.fillStyle = 'rgba(255,255,255,0.08)'; g.fill();
+        const f = i < tier.index ? 1 : i === tier.index ? tier.frac : 0;
+        if (f > 0) { rrect(g, sx, ty, Math.max(14, seg * f), 14, 7); g.fillStyle = t.color; g.fill(); }
+      });
+    }
+
+    // Stat boxes
+    const { days } = completionData(c);
+    const st = streaks(days);
+    const rmDone = ROADMAP.reduce((n, p) => n + p.tasks.filter(([key]) => c.roadmap.done[key]).length, 0);
+    const pathDone = GEAR_PATH.reduce((n, s) => n + gpKeys(s).filter(key => c.path.done[key]).length, 0);
+    const one = summary(c, 'static');
+    const boxes = [
+      ['GEAR SCORE', k.gearScore ? fmtInt(k.gearScore) : '—', '#8aa4ff'],
+      ['DAY STREAK', `${st.current}`, '#34d399'],
+      ['ROADMAP', `${rmDone}/${ROADMAP_TOTAL}`, '#f5c96a'],
+      c.role === 'main' ? ['PROGRESSION', `${pathDone}/${GEAR_PATH_TOTAL}`, '#fb923c'] : ['ONE-TIME', `${one.done}/${one.total}`, '#2dd4bf'],
+    ];
+    const bw = (W - 128 - 3 * 18) / 4;
+    boxes.forEach(([label, val, col], i) => {
+      const bx = 64 + i * (bw + 18), by = 474;
+      rrect(g, bx, by, bw, 100, 20); g.fillStyle = 'rgba(255,255,255,0.05)'; g.fill();
+      g.strokeStyle = 'rgba(255,255,255,0.08)'; g.lineWidth = 2; g.stroke();
+      g.fillStyle = col; g.font = F(900, 18); spaced('3px'); g.fillText(label, bx + 24, by + 36); spaced('0px');
+      g.fillStyle = '#ffffff'; g.font = F(900, 42); g.fillText(val, bx + 22, by + 82);
+    });
+
+    // Footer
+    g.fillStyle = 'rgba(154,164,194,0.8)'; g.font = F(700, 20);
+    g.fillText('Aion 2 Progress Tracker', 64, 606);
+    g.textAlign = 'right';
+    g.fillText(`${fmtDay.format(Date.now())}  ·  itsmoboiz.github.io/aion2-tracker`, W - 64, 606);
+    return cv;
+  }
+
+  async function openShareCard(c) {
+    let blob = null, url = '';
+    const m = openModal({
+      title: `Share ${c.name}`,
+      size: 'wide',
+      body: `<div class="share-prev" id="share-prev"><p class="fine">Drawing the card…</p></div>
+        <p class="fine">Download the image or copy it, then paste it into Discord or anywhere else.</p>`,
+      footer: `<button type="button" class="btn ghost" data-m="close">Close</button>
+               ${window.ClipboardItem && navigator.clipboard && navigator.clipboard.write ? `<button type="button" class="btn ghost" data-m="copy" disabled>${icon('copy')}Copy image</button>` : ''}
+               <button type="button" class="btn primary" data-m="download" disabled>${icon('download')}Download PNG</button>`,
+      onClose() { if (url) URL.revokeObjectURL(url); },
+      actions: {
+        async copy() {
+          if (!blob) return;
+          try {
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+            toast('Image copied. Paste it into Discord.', { type: 'ok' });
+          } catch (e) { toast('Couldn\'t copy in this browser. Use Download instead.', { type: 'bad' }); }
+        },
+        download() {
+          if (!url) return;
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${String(c.name).replace(/[^\p{L}\p{N}_-]+/gu, '-') || 'character'}-aion2.png`;
+          document.body.appendChild(a); a.click(); a.remove();
+        },
+      },
+    });
+    try {
+      const cv = await renderShareCard(c);
+      blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+      if (!blob || !m.isConnected) return;
+      url = URL.createObjectURL(blob);
+      $('#share-prev', m).innerHTML = `<img src="${url}" alt="Share card for ${esc(c.name)}" width="1200" height="630">`;
+      for (const b of $$('[data-m="copy"], [data-m="download"]', m)) b.disabled = false;
+    } catch (e) {
+      $('#share-prev', m).innerHTML = '<p class="err">Couldn\'t draw the card in this browser.</p>';
+    }
+  }
+
+  /* ---------- 7i. Weekly recap ----------
+     Shown once when a week ends (and from History): days fully completed, weeklies, CP gained, streak. */
+  const RECAP_SEEN_KEY = 'aion2-recap-seen';
+
+  function recapRows(entry) {
+    const prev = state.history.find(h => h.start < entry.start);
+    return entry.chars.map(x => {
+      const full = x.days.filter(isFullDay).length;
+      const wDone = x.weekly.filter(t => t.prog >= t.count).length;
+      const px = prev && prev.chars.find(y => y.id === x.id);
+      const cpOf = s => num(s.gameCp) || num(s.cp);
+      const gained = px && cpOf(px) && cpOf(x) ? cpOf(x) - cpOf(px) : null;
+      const c = getChar(x.id);
+      const streak = c ? streaks(completionData(c).days.filter(d => d.start < entry.end)).current : null;
+      return { x, full, days: x.days.length, wDone, wTotal: x.weekly.length, cp: cpOf(x), gained, streak };
+    });
+  }
+
+  function openRecap(entry) {
+    if (!entry || !entry.chars.length) return;
+    try { localStorage.setItem(RECAP_SEEN_KEY, String(entry.start)); } catch (e) { /* ignore */ }
+    const rows = recapRows(entry);
+    const m = openModal({
+      title: 'Week in review',
+      size: 'wide',
+      body: `<p class="recap-range">${icon('history')}Week of <b>${esc(fmtDay.format(entry.start))}</b> → ${esc(fmtDay.format(entry.end))}</p>
+        <div class="recap-grid">
+          ${rows.map(r => {
+            const perfect = r.days >= 7 && r.full >= r.days && r.wTotal && r.wDone >= r.wTotal;
+            return `<article class="recap-card ${perfect ? 'is-perfect' : ''}" style="--cc:${classColor(r.x)}">
+              <header>${avatar({ name: r.x.name, cls: r.x.cls })}<div><b>${esc(r.x.name)}</b><small>${[`Lv ${r.x.level}`, r.x.cls].filter(Boolean).map(esc).join(' · ')}</small></div>
+                ${perfect ? `<span class="recap-badge">${icon('trophy')}Perfect week</span>` : ''}</header>
+              <div class="recap-stats">
+                <div><b>${r.full}<i>/${Math.max(r.days, 7)}</i></b><small>Full days</small></div>
+                <div><b>${r.wDone}<i>/${r.wTotal}</i></b><small>Weeklies</small></div>
+                <div class="${r.gained > 0 ? 'up' : r.gained < 0 ? 'down' : ''}"><b>${r.gained == null ? '—' : `${r.gained > 0 ? '+' : ''}${fmtInt(r.gained)}`}</b><small>CP gained</small></div>
+                <div><b>${r.streak == null ? '—' : r.streak}</b><small>Day streak</small></div>
+              </div>
+              ${r.cp ? `<p class="fine">Combat Power at week's end: <b>${fmtInt(r.cp)}</b></p>` : ''}
+            </article>`;
+          }).join('')}
+        </div>`,
+      footer: `<button type="button" class="btn ghost" data-m="history">${icon('history')}Open History</button>
+               <button type="button" class="btn primary" data-m="close">Done</button>`,
+      actions: { history() { closeModal(m); openHistory(); } },
+    });
+  }
+
+  // After a weekly reset: show last week's recap once per device.
+  function maybeShowRecap() {
+    const entry = state.history[0];
+    if (!entry || !entry.chars.length) return false;
+    let seen = 0;
+    try { seen = num(localStorage.getItem(RECAP_SEEN_KEY)); } catch (e) { /* ignore */ }
+    if (seen >= entry.start) return false;
+    openRecap(entry);
+    return true;
+  }
+
+  /* ---------- 7j. Launch countdown (topbar chip, until a day after launch) ---------- */
+  function updateLaunch(now) {
+    const chip = $('#launch-chip');
+    if (!chip) return;
+    const live = now >= LAUNCH_AT;
+    chip.hidden = now > LAUNCH_AT + 864e5;
+    if (chip.hidden) return;
+    chip.classList.toggle('is-live', live);
+    $('[data-launch="label"]', chip).textContent = live ? 'AION 2 is live' : 'AION 2 launch';
+    $('[data-launch="when"]', chip).textContent = live ? `Since ${fmtClock.format(LAUNCH_AT)}` : fmtWhen.format(LAUNCH_AT);
+    $('[data-launch="in"]', chip).innerHTML = live ? `Good luck, Daeva!` : `in <b>${esc(fmtDur(LAUNCH_AT - now))}</b>`;
   }
 
   /* Personal notes: shown in the header's Notes dialog (all notes, with filters) and in each
@@ -1806,6 +2396,8 @@
     for (const el of $$('[data-countdown]')) el.textContent = fmtDur(next[el.dataset.countdown] - now);
     for (const el of $$('[data-when]')) el.textContent = fmtWhen.format(next[el.dataset.when]);
     updateRift(now);
+    updateOdyle(now);
+    updateLaunch(now);
   }
 
   /* Spacetime Rift: portals open every 3 hours on the hour (GMT+3 server time) and can only be
@@ -3099,6 +3691,10 @@
         if (e.target.id === 'hist-filter') { filter = e.target.value; paint(); }
       },
       actions: {
+        recap(b) {
+          const entry = state.history.find(x => String(x.start) === b.dataset.start);
+          if (entry) { closeModal(m); openRecap(entry); }
+        },
         'del-week'(b) {
           if (b.dataset.armed !== '1') {
             b.dataset.armed = '1';
@@ -3163,7 +3759,9 @@
             </div>`;
           }).join('')}
         </div>
-        ${w.live ? '' : `<div class="wk-foot"><button type="button" class="btn ghost xs danger-text" data-m="del-week" data-start="${w.start}">${icon('trash')}Delete this week</button></div>`}
+        ${w.live ? '' : `<div class="wk-foot">
+          <button type="button" class="btn ghost xs" data-m="recap" data-start="${w.start}">${icon('trophy')}Week in review</button>
+          <button type="button" class="btn ghost xs danger-text" data-m="del-week" data-start="${w.start}">${icon('trash')}Delete this week</button></div>`}
       </details>`;
     }
 
@@ -3380,6 +3978,28 @@
       rmOpen.set(c.id, set.size === ROADMAP.length ? new Set() : new Set(ROADMAP.map(p => p.key)));
       rerender(el);
     },
+    'edit-odyle'(el) { const c = getChar(el.dataset.char); if (c) openOdyleModal(c); },
+    'odyle-spend'(el) {
+      const c = getChar(el.dataset.char);
+      const v = c && odyleNow(c);
+      if (v == null || v < ODYLE.cube) return;
+      setOdyle(c, v - ODYLE.cube, true);
+      save();
+      rerender(el);
+      toast(`${c.name}: ${fmtInt(v - ODYLE.cube)} Odyle Energy left.`, { type: 'ok' });
+    },
+    'growth-series'(el) { growthSeries = el.dataset.value === 'gs' ? 'gs' : 'cp'; rerender(el); },
+    'growth-range'(el) { growthRange = num(el.dataset.value); rerender(el); },
+    'edit-counter'(el) { const c = getChar(el.dataset.char); if (c) openCounterModal(c, el.dataset.kind, el.dataset.value); },
+    'counter-step'(el) {
+      const c = getChar(el.dataset.char);
+      const kind = el.dataset.kind, key = el.dataset.value;
+      if (!c || !c[kind]) return;
+      c[kind].amounts[key] = clamp(num(c[kind].amounts[key]) + 1, 0, COUNTER_MAX);
+      save();
+      rerender(el);
+    },
+    'share-card'(el) { const c = getChar(el.dataset.char); if (c) openShareCard(c); },
     'fold-board'(el) {
       const key = el.dataset.char + ':' + el.dataset.kind;
       if (boardShown.has(key)) boardShown.delete(key); else boardShown.add(key);
@@ -4391,7 +5011,7 @@
   const first = processResets();
   save({ sync: false }); // persists any upgrade from an older version (and the generated task ids) straight away
   render();
-  if (first.weekly && state.history.length) toast('New week started — last week was archived to History.', { type: 'ok', timeout: 6000 });
+  if (first.weekly && state.history.length) { if (!maybeShowRecap()) toast('New week started — last week was archived to History.', { type: 'ok', timeout: 6000 }); }
   else if (first.daily) toast('Daily reset — checklists are fresh.', { type: 'ok' });
   announceCatalog();
   try {
@@ -4405,7 +5025,7 @@
     const r = processResets();
     if (r.weekly) {
       render();
-      toast('Weekly reset — last week was archived to History.', { type: 'ok', timeout: 6000 });
+      if (!maybeShowRecap()) toast('Weekly reset — last week was archived to History.', { type: 'ok', timeout: 6000 });
     } else if (r.daily) {
       render();
       toast('Daily reset — checklists are fresh.', { type: 'ok' });
