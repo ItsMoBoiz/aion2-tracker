@@ -78,15 +78,6 @@
     Asmodian: ['Israphel', 'Zikel', 'Triniel', 'Lumiel'],
   };
   const factionOfServer = s => RACES.find(r => SERVERS[r].includes(s)) || '';
-
-  // <option>s for the server picklist; keeps a saved value that isn't in the list so it isn't lost.
-  function serverOptions(faction, selected) {
-    const opt = s => `<option value="${esc(s)}" ${s === selected ? 'selected' : ''}>${esc(s)}</option>`;
-    const groups = (faction ? [faction] : RACES)
-      .map(r => `<optgroup label="${r}">${SERVERS[r].map(opt).join('')}</optgroup>`).join('');
-    const known = RACES.some(r => SERVERS[r].includes(selected));
-    return `<option value="">Choose a server</option>${groups}${selected && !known ? `<option value="${esc(selected)}" selected>${esc(selected)} (not a Europe server)</option>` : ''}`;
-  }
   const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   const RARITIES = [
@@ -133,9 +124,8 @@
        - Removed from game: add retired: true and raise rev. It's hidden (not deleted) for everyone.
      People's own activities, renames, hidden or deleted activities, and progress are always kept. */
   const CATALOG = [
-    { kind: 'daily', key: 'daily.duty-missions', rev: 1, name: 'Duty Missions', count: 5, desc: 'Server daily completions',
-      location: 'Journal → Duty', mainOnly: true,
-      info: 'Duty Missions can only be completed once per server each day. You can\'t do them on your alts, only on your main character.' },
+    { kind: 'daily', key: 'daily.duty-missions', rev: 2, name: 'Duty Missions', count: 5, desc: 'Server daily completions',
+      location: 'Journal → Duty', mainOnly: true },
     { kind: 'daily', key: 'daily.supply-requests', rev: 1, name: 'Daily Supply Requests', count: 1, desc: 'Complete the daily Supply Request' },
     { kind: 'daily', key: 'daily.expedition-conquest', rev: 1, name: 'Expedition Conquest', count: 1, desc: 'Daily Expedition Conquest' },
     { kind: 'daily', key: 'daily.transcendence', rev: 1, name: 'Transcendence', count: 1, desc: 'Arcana + Stigma' },
@@ -398,6 +388,7 @@
     clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
     infinity: '<path d="M7 8.5c-2 0-3.5 1.6-3.5 3.5S5 15.5 7 15.5c3.5 0 6.5-7 10-7 2 0 3.5 1.6 3.5 3.5s-1.5 3.5-3.5 3.5c-3.5 0-6.5-7-10-7z"/>',
     crown: '<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
     pin: '<path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.01"/>',
     infoMark: '<path d="M12 10.5v7M12 6.5v.01"/>', // just the "i", for use inside a round button
@@ -986,7 +977,7 @@
   function roadmapHTML(c) {
     const infos = ROADMAP.map(p => ({ p, ...phaseInfo(c, p) }));
     const current = infos.find(i => i.inRange) || infos[infos.length - 1];
-    if (!rmOpen.has(c.id)) rmOpen.set(c.id, new Set([current.p.key]));
+    if (!rmOpen.has(c.id)) rmOpen.set(c.id, new Set()); // all phases start closed
     const open = rmOpen.get(c.id);
     const done = infos.reduce((n, i) => n + i.done, 0);
     const pct = Math.round((done / ROADMAP_TOTAL) * 100);
@@ -1149,13 +1140,9 @@
         <span class="qt-count"><b>${p}</b>/${t.count}</span>
       </header>
       ${t.desc ? `<p class="qt-desc">${esc(t.desc)}</p>` : ''}
-      ${t.location || t.info || t.mainOnly ? `<div class="qt-meta">
+      ${t.location || t.mainOnly ? `<div class="qt-meta">
         ${t.mainOnly ? `<span class="tag main icon-only" title="Main character only" aria-label="Main character only">${icon('crown')}</span>` : ''}
         ${t.location ? `<span class="tag loc">${icon('pin')}${esc(t.location)}</span>` : ''}
-        ${t.info ? `<span class="info-wrap">
-          <button class="info-btn" data-action="info" aria-expanded="false" aria-label="About ${esc(t.name)}">${icon('infoMark')}</button>
-          <span class="info-pop" role="tooltip" hidden>${esc(t.info)}</span>
-        </span>` : ''}
       </div>` : ''}
       <footer class="qt-foot">${controls}</footer>
     </article>`;
@@ -1990,25 +1977,55 @@
       if (role === 'alt' && c && c.role === 'main') return 'You will have no main until you choose one. Duty Missions only show on your main.';
       return '';
     };
+    // Older saves may have a server but no faction.
+    const race0 = v.race || factionOfServer(v.server);
+    // Server chips for the chosen faction; keeps a saved server that isn't in the list.
+    const serverChips = (faction, selected) => {
+      const list = RACES.includes(faction) ? SERVERS[faction] : [];
+      const extra = selected && !list.includes(selected) && !factionOfServer(selected) ? [selected] : [];
+      if (!list.length && !extra.length) return `<p class="cf-hint">Choose a faction to see its servers.</p>`;
+      return list.concat(extra).map(s => `<label class="srv-opt">
+        <input type="radio" name="server" value="${esc(s)}" ${s === selected ? 'checked' : ''}><span>${esc(s)}</span></label>`).join('');
+    };
+    const roleBadge = role => role === 'main'
+      ? `<span class="cf-badge main">${icon('crown')}Main</span>` : `<span class="cf-badge">${icon('user')}Alt</span>`;
     const m = openModal({
       title: isNew ? 'Add character' : `Edit ${c.name}`,
-      body: `<form id="char-form" class="form-grid" novalidate>
-        <label class="field span-2"><span>Name <em>*</em></span>
-          <input name="name" required maxlength="40" value="${esc(v.name)}" autocomplete="off" autofocus>
-          <small class="err" hidden>Please enter a name.</small></label>
-        <fieldset class="role-pick span-2">
+      body: `<form id="char-form" class="cf" novalidate>
+        <div class="cf-preview" style="--cc:${classColor(v)}">
+          <span class="cf-av">${avatar({ ...v, name: v.name || '?' }, 'lg')}</span>
+          <div class="cf-id">
+            <b class="cf-name">${esc(v.name) || 'New character'}</b>
+            <span class="cf-meta">${metaLine({ ...v, race: race0 })}</span>
+          </div>
+          <span class="cf-role">${roleBadge(v.role)}</span>
+        </div>
+        <div class="cf-row">
+          <label class="field cf-grow"><span>Name <em>*</em></span>
+            <input name="name" required maxlength="40" value="${esc(v.name)}" autocomplete="off" autofocus placeholder="Character name">
+            <small class="err" hidden>Please enter a name.</small></label>
+          <div class="field cf-level"><span id="cf-level-label">Level</span>
+            <div class="stepper" role="group" aria-labelledby="cf-level-label">
+              <button type="button" class="step-btn" data-step="-1" aria-label="Lower level">${icon('minus')}</button>
+              <input name="level" type="number" min="1" max="999" value="${esc(v.level)}" aria-labelledby="cf-level-label">
+              <button type="button" class="step-btn" data-step="1" aria-label="Raise level">${icon('plus')}</button>
+            </div></div>
+        </div>
+        <fieldset class="cf-sec">
           <legend>Role</legend>
-          <label class="role-opt">
-            <input type="radio" name="role" value="main" ${v.role === 'main' ? 'checked' : ''}>
-            <span><b>${icon('crown')}Main</b><small>Your one main character. Server-wide dailies like Duty Missions are tracked here.</small></span>
-          </label>
-          <label class="role-opt">
-            <input type="radio" name="role" value="alt" ${v.role !== 'main' ? 'checked' : ''}>
-            <span><b>Alt</b><small>Any number of alts. Main-only activities are hidden for them.</small></span>
-          </label>
+          <div class="role-pick">
+            <label class="role-opt">
+              <input type="radio" name="role" value="main" ${v.role === 'main' ? 'checked' : ''}>
+              <span><i class="ro-ico">${icon('crown')}</i><b>Main</b><small>One per account. Tracks server-wide dailies like Duty Missions.</small><i class="ro-dot"></i></span>
+            </label>
+            <label class="role-opt">
+              <input type="radio" name="role" value="alt" ${v.role !== 'main' ? 'checked' : ''}>
+              <span><i class="ro-ico">${icon('user')}</i><b>Alt</b><small>As many as you like. Main-only activities are hidden.</small><i class="ro-dot"></i></span>
+            </label>
+          </div>
           <p class="fine role-note" ${roleNote(v.role) ? '' : 'hidden'}>${roleNote(v.role)}</p>
         </fieldset>
-        <fieldset class="class-pick span-2">
+        <fieldset class="class-pick">
           <legend>Class</legend>
           <div class="class-grid">
             ${CLASSES.map(k => `<label class="class-opt" style="--cc:${CLASS_COLORS[k]}" title="${esc(CLASS_INFO[k])}">
@@ -2018,39 +2035,35 @@
           </div>
           ${v.cls && !CLASSES.includes(canonClass(v.cls)) ? `<label class="check-row"><input type="radio" name="cls" value="${esc(v.cls)}" checked> Keep "${esc(v.cls)}"</label>` : ''}
         </fieldset>
-        <label class="field"><span>Race / faction</span>
-          <select name="race" id="char-race">
-            <option value="">Choose a faction</option>
-            ${RACES.map(r => `<option value="${r}" ${r === v.race ? 'selected' : ''}>${r}</option>`).join('')}
-            ${v.race && !RACES.includes(v.race) ? `<option value="${esc(v.race)}" selected>${esc(v.race)}</option>` : ''}
-          </select></label>
-        <label class="field"><span>Level</span><input name="level" type="number" min="1" max="999" value="${esc(v.level)}"></label>
-        <label class="field"><span>Server <small class="region">${SERVER_REGION}</small></span>
-          <select name="server" id="char-server">${serverOptions(RACES.includes(v.race) ? v.race : '', v.server)}</select></label>
-        <label class="field span-2"><span>Notes</span><textarea name="notes" rows="2" maxlength="500" placeholder="Optional">${esc(v.notes)}</textarea></label>
+        <fieldset class="cf-sec">
+          <legend>Faction &amp; server <small class="region">${SERVER_REGION}</small></legend>
+          <div class="faction-pick">
+            ${RACES.map(r => `<label class="fac-opt ${r.toLowerCase()}">
+              <input type="radio" name="race" value="${r}" ${r === race0 ? 'checked' : ''}>
+              <span><i class="fac-ico">${icon(r === 'Elyos' ? 'sun' : 'moon')}</i><b>${r}</b><small>${SERVERS[r].length} servers</small></span>
+            </label>`).join('')}
+          </div>
+          ${race0 && !RACES.includes(race0) ? `<label class="check-row"><input type="radio" name="race" value="${esc(race0)}" checked> Keep "${esc(race0)}"</label>` : ''}
+          <div class="server-chips" id="char-servers" role="radiogroup" aria-label="Server">${serverChips(race0, v.server)}</div>
+        </fieldset>
+        <label class="field"><span>Notes</span><textarea name="notes" rows="2" maxlength="500" placeholder="Build, gear goals, anything to remember">${esc(v.notes)}</textarea></label>
       </form>`,
       footer: `<button type="button" class="btn ghost" data-m="cancel">Cancel</button>
                <button type="submit" form="char-form" class="btn primary">${isNew ? 'Add character' : 'Save changes'}</button>`,
+      onInput: () => updatePreview(),
       onChange(e) {
-        const raceSel = $('#char-race', m), serverSel = $('#char-server', m);
-        if (e.target === raceSel) {
-          // Show only this faction's servers; clear the server if it belongs to the other faction.
-          const keep = factionOfServer(serverSel.value) === raceSel.value || !factionOfServer(serverSel.value) ? serverSel.value : '';
-          serverSel.innerHTML = serverOptions(RACES.includes(raceSel.value) ? raceSel.value : '', keep);
-          return;
+        if (e.target.name === 'race') {
+          // Show this faction's servers; keep the server only if it belongs to it.
+          const cur = $('input[name="server"]:checked', m);
+          const keep = cur && factionOfServer(cur.value) === e.target.value ? cur.value : '';
+          $('#char-servers', m).innerHTML = serverChips(e.target.value, keep);
         }
-        if (e.target === serverSel) {
-          const f = factionOfServer(serverSel.value);
-          if (f && raceSel.value !== f) {
-            raceSel.value = f;
-            serverSel.innerHTML = serverOptions(f, serverSel.value);
-          }
-          return;
+        if (e.target.name === 'role') {
+          const note = $('.role-note', m);
+          note.innerHTML = roleNote(e.target.value);
+          note.hidden = !note.innerHTML;
         }
-        if (e.target.name !== 'role') return;
-        const note = $('.role-note', m);
-        note.innerHTML = roleNote(e.target.value);
-        note.hidden = !note.innerHTML;
+        updatePreview();
       },
       actions: {
         submit(form) {
@@ -2086,6 +2099,32 @@
           render();
         },
       },
+    });
+
+    // Live preview card at the top of the form.
+    function updatePreview() {
+      const form = $('#char-form', m);
+      const fd = new FormData(form);
+      const p = {
+        name: String(fd.get('name') || '').trim(),
+        cls: String(fd.get('cls') || ''), race: String(fd.get('race') || ''), server: String(fd.get('server') || ''),
+        level: clamp(Math.round(num(fd.get('level'), 1)), 1, 999),
+      };
+      const box = $('.cf-preview', m);
+      box.style.setProperty('--cc', classColor(p));
+      $('.cf-av', box).innerHTML = avatar({ ...p, name: p.name || '?' }, 'lg');
+      $('.cf-name', box).textContent = p.name || 'New character';
+      $('.cf-meta', box).innerHTML = metaLine(p);
+      $('.cf-role', box).innerHTML = roleBadge(fd.get('role') === 'main' ? 'main' : 'alt');
+    }
+
+    // Level stepper buttons.
+    m.addEventListener('click', e => {
+      const b = e.target.closest('[data-step]');
+      if (!b) return;
+      const inp = $('input[name="level"]', m);
+      inp.value = clamp(Math.round(num(inp.value, 1)) + Number(b.dataset.step), 1, 999);
+      updatePreview();
     });
   }
 
@@ -2403,7 +2442,6 @@
               <div class="te-fields">
                 <label class="field"><span>Description</span><input data-te="desc" maxlength="120" value="${esc(t.desc)}" placeholder="e.g. 14 dungeon entries"></label>
                 <label class="field"><span>Location</span><input data-te="location" maxlength="60" value="${esc(t.location)}" placeholder="e.g. Journal → Duty"></label>
-                <label class="field span-2"><span>Info (shown behind the &#9432; button)</span><textarea data-te="info" rows="2" maxlength="400" placeholder="Optional">${esc(t.info)}</textarea></label>
                 <label class="check-row span-2"><input type="checkbox" data-te="mainOnly" ${t.mainOnly ? 'checked' : ''}> Main character only (hidden for alts)</label>
               </div>
             </details>
@@ -2413,7 +2451,7 @@
       };
       return `<p class="fine">These lists are shared by all characters. Use <b>&times;</b> for activities done several times (e.g. 14 dungeon runs).
         Click the ${icon('eye')} to <b>hide</b> an activity that isn't unlocked yet: it disappears for every character and doesn't count toward any day or week until you show it again.
-        Open <b>Details</b> to add a description, location, info text, or to limit an activity to your main.</p>
+        Open <b>Details</b> to add a description or location, or to limit an activity to your main.</p>
         <div class="seg sub-seg" role="tablist" aria-label="Activity list">
           ${KINDS.map(k => `<button type="button" role="tab" class="seg-btn ${k} ${k === taskKind ? 'is-active' : ''}" aria-selected="${k === taskKind}" data-m="task-kind" data-kind="${k}">
             ${KIND_LABEL[k]} <span class="seg-count">${draft.tasks[k].filter(t => !t.off).length}/${draft.tasks[k].length}</span></button>`).join('')}
@@ -2977,7 +3015,6 @@
     const before = ROADMAP.find(p => c.level >= p.min && c.level < p.max);
     c.level = v;
     const after = ROADMAP.find(p => v >= p.min && v < p.max);
-    if (after && after !== before && rmOpen.has(c.id)) rmOpen.get(c.id).add(after.key);
     save();
     if (el) rerender(el); else render();
     if (after && before && after !== before) toast(`${c.name} reached ${after.levels}: ${after.name}.`, { type: 'ok' });
@@ -3945,35 +3982,76 @@
     showNewsPop();
   }
 
+  // Colour-coded categories, guessed from each announcement's title (first match wins).
+  const NEWS_CATS = [
+    { key: 'update', label: 'Update', plural: 'Updates', color: '#fbbf24', re: /hot ?fix|patch|update|maintenance|fixed|known issue/i },
+    { key: 'event', label: 'Event', plural: 'Events', color: '#f472b6', re: /event|festival|creator|reward|giveaway|campaign|celebrat/i },
+    { key: 'test', label: 'Test', plural: 'Tests', color: '#a78bfa', re: /test|beta/i },
+    { key: 'server', label: 'Server', plural: 'Servers', color: '#22d3ee', re: /server|access|matchmaking|pre-?download|launch|queue/i },
+    { key: 'notice', label: 'Notice', plural: 'Notices', color: '#8aa4ff', re: /./ },
+  ];
+  const newsCat = n => NEWS_CATS.find(c => c.re.test(n.title || '')) || NEWS_CATS[NEWS_CATS.length - 1];
+  const fmtMonShort = new Intl.DateTimeFormat(undefined, { month: 'short' });
+
   function openNewsList() {
     const unreadIds = new Set(unreadNews().map(n => n.id));
-    const images = news.source !== 'cloud';
     const items = news.items.slice().sort((a, b) => b.postedAt - a.postedAt);
+    let filter = 'all';
+
+    const dateTile = n => `<span class="nd-date"><b>${new Date(n.postedAt).getDate()}</b><small>${esc(fmtMonShort.format(n.postedAt))}</small></span>`;
+    const chip = c => `<span class="nd-cat">${esc(c.label)}</span>`;
+    const isNew = n => (unreadIds.has(n.id) ? '<span class="nd-new">New</span>' : '');
+
+    const paint = () => {
+      const list = items.filter(n => filter === 'all' || newsCat(n).key === filter);
+      const [first, ...rest] = list;
+      const counts = Object.fromEntries(NEWS_CATS.map(c => [c.key, items.filter(n => newsCat(n) === c).length]));
+      $('.nd-filters', m).innerHTML = [['all', 'All', '#9fb4ff', items.length]]
+        .concat(NEWS_CATS.filter(c => counts[c.key]).map(c => [c.key, c.plural, c.color, counts[c.key]]))
+        .map(([k, l, col, n]) => `<button type="button" class="nd-filter ${filter === k ? 'is-active' : ''}" style="--nc:${col}" data-m="filter" data-value="${k}" aria-pressed="${filter === k}">
+          <i></i>${esc(l)}<span>${n}</span></button>`).join('');
+      if (!first) { $('.nd-content', m).innerHTML = '<p class="nd-empty">Nothing in this category yet.</p>'; return; }
+      const fc = newsCat(first);
+      $('.nd-content', m).innerHTML = `
+        <button type="button" class="nd-feature" style="--nc:${fc.color}" data-m="open" data-id="${esc(first.id)}">
+          ${dateTile(first)}
+          <span class="nd-feature-body">
+            <span class="nd-meta"><span class="nd-latest">${icon('sparkle')}Latest</span>${chip(fc)}${isNew(first)}<time>${esc(fmtAgo(first.postedAt))}</time></span>
+            <b class="nd-feature-title">${esc(first.title)}</b>
+            <span class="nd-feature-sum">${esc(textOf(first.summary))}</span>
+            <span class="nd-read">Read article ${icon('arrow')}</span>
+          </span>
+        </button>
+        ${rest.length ? `<div class="nd-grid">${rest.map(n => {
+          const c = newsCat(n);
+          return `<button type="button" class="nd-card" style="--nc:${c.color}" data-m="open" data-id="${esc(n.id)}">
+            ${dateTile(n)}
+            <span class="nd-card-body">
+              <span class="nd-meta">${chip(c)}${isNew(n)}<time>${esc(fmtAgo(n.postedAt))}</time></span>
+              <b class="nd-title">${esc(n.title)}</b>
+              <span class="nd-sum">${esc(textOf(n.summary))}</span>
+            </span>
+            <span class="nd-arrow">${icon('arrow')}</span>
+          </button>`;
+        }).join('')}</div>` : ''}`;
+    };
+
     const m = openModal({
-      title: 'AION 2 news',
+      title: 'AION 2 News',
       size: 'wide',
-      body: `<ul class="news-list">
-          ${items.map(n => `<li>
-            <button type="button" class="news-item" data-m="open" data-id="${esc(n.id)}">
-              <span class="news-thumb">${images && n.thumb ? `<img src="${esc(n.thumb)}" alt="" loading="lazy">` : icon('news')}</span>
-              <span class="news-body">
-                <span class="news-meta">${unreadIds.has(n.id) ? '<span class="pill new">New</span>' : ''}<time>${esc(fmtDay.format(n.postedAt))}</time> · ${esc(fmtAgo(n.postedAt))}</span>
-                <b class="news-title">${esc(n.title)}</b>
-                <span class="news-summary">${esc(textOf(n.summary))}</span>
-              </span>
-            </button>
-          </li>`).join('')}
-        </ul>`,
+      body: `<div class="nd-filters" role="toolbar" aria-label="Filter news"></div><div class="nd-content"></div>`,
       footer: `<span class="fine foot-note">Official announcements from aion2.plaync.com${news.updatedAt ? ` · updated ${esc(fmtAgo(news.updatedAt))}` : ''}</span>
                <a class="btn ghost" href="${NEWS_PAGE}" target="_blank" rel="noopener noreferrer">${icon('external')}Official site</a>
                <button class="btn primary" data-m="close">Done</button>`,
       actions: {
+        filter(b) { filter = b.dataset.value; paint(); },
         open(b) {
           const item = news.items.find(n => n.id === b.dataset.id);
           if (item) openArticle(item);
         },
       },
     });
+    paint();
     markNewsSeen();
     return m;
   }
