@@ -135,6 +135,84 @@
   ];
   const CATALOG_FIELDS = ['name', 'count', 'desc', 'location', 'info', 'mainOnly'];
 
+  /* Leveling roadmap: phases by character level, each with tasks to tick (per character) and
+     guidance. Task keys are permanent; progress is stored as c.roadmap.done[key]. `guide` links
+     a guidance line to a Guide card. */
+  const ROADMAP = [
+    { key: 'p1', min: 1, max: 10, levels: 'Level 1–10', name: 'Ishalgen',
+      tasks: [['p1.main-story', 'Main Story'], ['p1.ascension', 'Ascension'], ['p1.start-gathering', 'Start Gathering'],
+        ['p1.hideouts', 'Early Hideouts (as encountered)'], ['p1.stronghold', 'Early Stronghold']],
+      guidance: [['Main Story drives progression.'], ['Gather nodes you pass — don\'t go out of your way, but don\'t ignore them.', 'gathering'],
+        ['Gathering Essentials quest unlocks after Level 10.'], ['Do Hideouts as you find them; they give good rewards.'],
+        ['Early Stronghold: do as encountered.'], ['Pet/Mount Soul collection happens naturally while questing.', 'pet']] },
+    { key: 'p2', min: 10, max: 25, levels: 'Level 10–25', name: 'Early Game',
+      tasks: [['p2.main-story', 'Main Story'], ['p2.krao-easy', 'Krao Cave — Easy (200 GS)'], ['p2.hideouts', 'Hideouts (as encountered)'],
+        ['p2.strongholds', 'Strongholds (as available)'], ['p2.gathering', 'Gathering (maintain naturally)']],
+      guidance: [['Main Story + natural side activities.'], ['Strongholds: do them as they unlock — good XP and rewards.'],
+        ['Gathering: maintain naturally; Gathering Essentials unlocks after Level 10.', 'gathering'],
+        ['Pet/Mount Soul collection happens naturally while questing.', 'pet'],
+        ['Side Quests before Level 30: do not prioritize for Accessories/Jewelry.', 'sidequests']] },
+    { key: 'p3', min: 25, max: 40, levels: 'Level 25–40', name: 'Midgame',
+      tasks: [['p3.main-story', 'Main Story'], ['p3.urugugu-easy', 'Urugugu Canyon — Easy (300 GS)'], ['p3.fire-temple-easy', 'Fire Temple — Easy (500 GS)'],
+        ['p3.hideouts', 'Hideouts (as encountered)'], ['p3.strongholds', 'Strongholds (as available)'], ['p3.gathering', 'Gathering (maintain naturally)'],
+        ['p3.side-accessories', 'Check Side Quests for Accessories'], ['p3.daevanion', 'Daevanion Board (Stat Tree)'], ['p3.stigma', 'Stigma']],
+      guidance: [['Main Story + steady side progression.'], ['Gathering: maintain naturally; Odellium becomes important.', 'gathering'],
+        ['Daevanion/Stigma: keep them current with your level.'], ['After Level 30: Side Quest Jewelry/Accessories can be considered.', 'sidequests']] },
+    { key: 'p4', min: 40, max: 45, levels: 'Level 40–45', name: 'Pre-Cap', desc: 'Prepare for the Level 45 cap and Gear Score requirements.',
+      tasks: [['p4.finish-main-story', 'Finish Main Story'], ['p4.strongholds', 'Strongholds'], ['p4.gathering', 'Gathering (maintain naturally)'],
+        ['p4.side-accessories', 'Check Side Quests for Accessories'], ['p4.stigma', 'Stigma'], ['p4.daevanion', 'Daevanion Board (Stat Tree)'],
+        ['p4.hideouts', 'Hideouts (as you encounter)'], ['p4.krao-conquest', 'Krao Cave — Conquest (700 GS)']],
+      guidance: [['Finish Main Story, then gear up for cap.'], ['Enchanting: active priority — Weapon → Armor → Belt → Accessories.', 'enchanting'],
+        ['Gathering: maintain naturally for Odellium access.', 'gathering'], ['Strongholds: continue as available.'],
+        ['Hideouts: do as you encounter them.'], ['Krao Cave — Conquest (700 GS): clear it as a milestone.']] },
+    { key: 'p5', min: 45, max: Infinity, levels: 'Level 45', name: 'Level 45 Cap',
+      desc: 'The current progression cap. Progression changes from leveling to optimization and completion.',
+      tasks: [['p5.draupnir-easy', 'Draupnir — Easy (700 GS)'], ['p5.vakron-easy', 'Vakron Sky Island — Easy (1400 GS)'], ['p5.dungeons', 'Available Dungeons'],
+        ['p5.expeditions', 'Expeditions'], ['p5.abyss', 'Abyss'], ['p5.gear', 'Gear optimization'], ['p5.stigma', 'Stigma optimization'],
+        ['p5.daevanion', 'Daevanion Board (Stat Tree)'], ['p5.gathering', 'Gathering (maintain naturally)'], ['p5.stronghold', 'Stronghold'],
+        ['p5.hideouts', 'Hideouts'], ['p5.nightmare', 'Nightmare'], ['p5.feathers', 'Feather collection'], ['p5.spacetime-rift', 'Spacetime Rift'],
+        ['p5.rift-strongholds', 'Rift Strongholds / Hideouts']],
+      guidance: [['Optimize gear, stigma, daevanion for your build.'], ['Run dungeons/expeditions for gear progression.'],
+        ['Abyss for AP/gear if interested in PvP.'], ['Gathering: maintain naturally for Odellium access.', 'gathering'],
+        ['Strongholds, Hideouts, Nightmare, Feather collection, Spacetime Rift, Rift Strongholds/Hideouts: endgame progression.']] },
+  ];
+  const ROADMAP_TOTAL = ROADMAP.reduce((n, p) => n + p.tasks.length, 0);
+
+  /* Important Progression Rules (information only). Lines with warn: true are highlighted. */
+  const GUIDE = [
+    { key: 'pet', icon: 'paw', title: 'Pet / Mount',
+      tagline: 'Account-wide progression — collect once, benefit all characters. Unlocks after the Level 10 "Gathering Essentials" quest.',
+      lines: ['Kill monsters → obtain Soul Shards → collect 10 → unlock Pet/Mount.', 'Pets become Mounts.',
+        'Pet/Mount stats and buffs are account-wide and shared between characters.',
+        'Pet/Mount progression becomes available after completing the Level 10 "Gathering Essentials" quest.',
+        'Pet/Mount collection is a parallel progression system.', 'Early priority should be collection rather than heavily farming one creature.',
+        { warn: true, text: 'Do not stop leveling to farm Souls. Kill monsters naturally while passing through areas during quests and collect Soul Shards as you progress.' }] },
+    { key: 'enchanting', icon: 'sparkle', title: 'Enchanting', tagline: 'Conserve resources for Level 45 gear.',
+      lines: ['Try not to heavily enchant gear before Level 45 — leveling gear is disposable and gets replaced quickly.',
+        'Weapon: a few upgrades are okay if you are struggling.', 'Avoid heavily enchanting temporary armor/accessories.',
+        'Do not waste enhancement materials on gear that will soon be replaced.',
+        { warn: true, text: 'Rune warning: do not recklessly break/use your runes. If an enhancement fails and the rune breaks, you will need to wait until you obtain more later.' }] },
+    { key: 'manastones', icon: 'gem', title: 'Manastones', tagline: 'Use wisely on leveling gear — save for Level 45.',
+      lines: ['Manastones can be used on leveling gear if needed.', 'You can use a Manastone once if needed.',
+        'Do not keep rerolling or repeatedly replacing Manastones on temporary leveling gear.', 'You will need Manastones later for better gear.',
+        'Avoid spending too many resources on gear that will soon be replaced.',
+        'Use resources when they give a meaningful benefit, but avoid heavily investing in temporary gear before Level 45.',
+        { warn: true, text: 'Manastones are limited. Do not waste them on gear you will replace at Level 45.' }] },
+    { key: 'kinah', icon: 'coin', title: 'Kinah', tagline: 'The most important resource — save it.',
+      lines: ['Kinah is needed for crafting, enchanting, buying items and other progression expenses.',
+        { warn: true, text: 'Do not waste your Kinah. Save Kinah while leveling.' }] },
+    { key: 'sidequests', icon: 'note', title: 'Side Quests', tagline: 'Check for valuable rewards — don\'t do all of them.',
+      lines: ['Check side quests for useful rewards, especially while leveling toward Level 45 through the Main Quest.',
+        'Do not complete every side quest automatically.', 'Prioritize side quests that give useful gear, important items or valuable rewards.',
+        { warn: true, text: 'Jewelry rule: before Level 30, don\'t prioritize Jewelry/Accessories from side quests. After Level 30 they can become useful.' }] },
+    { key: 'gathering', icon: 'leaf', title: 'Gathering', tagline: 'Level naturally while questing — avoid dedicated sessions later.',
+      lines: ['Gather naturally while questing — nodes you pass; don\'t go out of your way.',
+        'Top gear needs rare Odellium; gathering occasionally while questing prevents a long 1–2 hour gathering session later.',
+        'Other players also compete for gathering nodes.', 'Gathering should generally be leveled naturally while progressing.',
+        'Do not necessarily stop leveling for long dedicated gathering sessions.',
+        'Gathering levels are recommended targets, not hard requirements. You decide how much you want to gather.'] },
+  ];
+
   // The official values of one catalog entry, in the same shape as a task.
   function officialOf(e) {
     return { name: e.name, count: e.count || 1, desc: e.desc || '', location: e.location || '', info: e.info || '', mainOnly: !!e.mainOnly };
@@ -214,7 +292,7 @@
   function defaultState() {
     return {
       schema: SCHEMA,
-      settings: { ...defaultSchedule(), scoring: defaultScoring() },
+      settings: { ...defaultSchedule(), theme: 'dark', scoring: defaultScoring() },
       tasks: defaultTasks(),
       catalog: { seen: CATALOG.map(e => e.key) },
       characters: [],
@@ -258,6 +336,16 @@
     minus: '<path d="M5 12h14"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
     checkAll: '<path d="M2 12.5l4.5 4.5L15 8"/><path d="M10.5 16.5l.5.5L21.5 7"/>',
+    book: '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M8 7h7M8 11h7"/>',
+    rift: '<circle cx="12" cy="12" r="9"/><path d="M12 3c-3 3-3 15 0 18M12 3c3 3 3 15 0 18"/><circle cx="12" cy="12" r="2.2"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
+    flag: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+    paw: '<circle cx="7" cy="9" r="1.8"/><circle cx="12" cy="6.5" r="1.8"/><circle cx="17" cy="9" r="1.8"/><path d="M12 12c-3 0-5 3-5 5a2 2 0 0 0 2 2c1.2 0 1.8-.6 3-.6s1.8.6 3 .6a2 2 0 0 0 2-2c0-2-2-5-5-5z"/>',
+    sparkle: '<path d="M12 3l2 5.5L19.5 10 14 12l-2 6-2-6-5.5-2L10 8.5z"/>',
+    gem: '<path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l3 18M15 3l-3 18"/>',
+    coin: '<circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10h4a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3h4"/>',
+    leaf: '<path d="M5 19c0-8 5-14 15-15-1 10-7 15-15 15z"/><path d="M5 19l8-8"/>',
     x: '<path d="M6 6l12 12M18 6L6 18"/>',
     history: '<path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>',
     sliders: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
@@ -348,6 +436,7 @@
       daily: period(c.daily),
       weekly: { ...period(c.weekly), log: Array.isArray(c.weekly && c.weekly.log) ? c.weekly.log : [] },
       static: { prog: isObj(c.static && c.static.prog) ? c.static.prog : {} }, // one-time: never resets
+      roadmap: { done: isObj(c.roadmap && c.roadmap.done) ? c.roadmap.done : {} }, // leveling roadmap ticks
     };
   }
 
@@ -369,6 +458,7 @@
       schema: SCHEMA,
       settings: {
         tz: validTz(rs.tz) ? rs.tz : d.settings.tz,
+        theme: rs.theme === 'light' ? 'light' : 'dark', // dark is the default look
         daily: normTime(rs.daily, d.settings.daily),
         weekly: {
           weekday: clamp(Math.round(num(rs.weekly && rs.weekly.weekday, 3)), 0, 6),
@@ -638,11 +728,18 @@
             <span class="rc-when" data-when="weekly"></span>
             <span class="rc-in">in <b data-countdown="weekly"></b></span>
           </div>
+          <button class="reset-chip rift-chip" id="rift-chip" data-action="open-rift" title="Spacetime Rift portal schedule">
+            <span class="rc-label">${icon('rift')} <span data-rift="label">Next portal</span></span>
+            <span class="rc-when" data-rift="when"></span>
+            <span class="rc-in"><span data-rift="prefix">in</span> <b data-rift="in"></b></span>
+          </button>
         </div>
         <div class="top-actions">
           <button class="btn ghost news-btn" id="news-btn" data-action="open-news" title="Official AION 2 announcements" hidden>${icon('news')}<span>News</span><b class="news-badge" id="news-badge" hidden></b></button>
+          <button class="btn ghost" data-action="open-guide" title="Important progression rules">${icon('book')}<span>Guide</span></button>
           <button class="btn ghost" data-action="open-history" title="Weekly history">${icon('history')}<span>History</span></button>
           <button class="btn ghost" data-action="open-settings" title="Tasks, resets and scoring">${icon('sliders')}<span>Settings</span></button>
+          <button class="btn ghost theme-btn" id="theme-btn" data-action="toggle-theme"></button>
           <div id="account-slot" class="account-slot"></div>
         </div>
       </header>
@@ -679,8 +776,23 @@
   }
 
   function render() {
+    applyTheme();
     renderTabs();
     renderView();
+  }
+
+  // Light or dark look, saved with the person's settings (and synced with them).
+  function applyTheme() {
+    const light = state.settings.theme === 'light';
+    document.documentElement.dataset.theme = light ? 'light' : 'dark';
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', light ? '#f3f5fa' : '#0a0d17');
+    const btn = $('#theme-btn');
+    if (btn) {
+      btn.innerHTML = icon(light ? 'moon' : 'sun');
+      btn.title = light ? 'Switch to dark mode' : 'Switch to light mode';
+      btn.setAttribute('aria-label', btn.title);
+    }
   }
 
   // Re-renders and puts keyboard focus back on the control that was used.
@@ -772,9 +884,13 @@
           ${icon('infinity')}<span>One-time</span>${bar(s.pct, `One-time progress for ${c.name}`)}<b>${s.done}<i>/${s.total}</i></b>
         </div>` : '';
       })()}
-      <footer class="char-foot">
-        <button class="btn ghost sm" data-action="tab" data-id="${esc(c.id)}">Stats &amp; gear ${icon('arrow')}</button>
-      </footer>
+      ${(() => {
+        const done = ROADMAP.reduce((n, p) => n + p.tasks.filter(([k]) => c.roadmap.done[k]).length, 0);
+        const cur = ROADMAP.find(p => c.level >= p.min && c.level < p.max) || ROADMAP[ROADMAP.length - 1];
+        return `<div class="static-line rm-line ${done === ROADMAP_TOTAL ? 'is-complete' : ''}" title="Leveling roadmap · ${esc(cur.levels)} ${esc(cur.name)}">
+          ${icon('flag')}<span>Roadmap</span>${bar(Math.round((done / ROADMAP_TOTAL) * 100), `Leveling roadmap for ${c.name}`)}<b>${done}<i>/${ROADMAP_TOTAL}</i></b>
+        </div>`;
+      })()}
     </article>`;
   }
 
@@ -799,15 +915,126 @@
     const p = progOf(c, kind, t);
     const done = p >= t.count;
     const multi = t.count > 1;
-    return `<li class="task ${done ? 'is-done' : ''} ${multi && p > 0 && !done ? 'is-partial' : ''}" style="--p:${Math.round((p / t.count) * 100)}%">
-      <button class="task-main" data-action="toggle" ${ds} aria-pressed="${done}" title="${esc(t.desc || t.name)}${multi ? (done ? ' (click to reset)' : ' (click to add one)') : ''}">
+    // Several runs: the checkbox completes (or clears) all of them; the rest of the row adds one run.
+    // One run: a click anywhere on the row ticks it.
+    return `<li class="task ${done ? 'is-done' : ''} ${multi && p > 0 && !done ? 'is-partial' : ''} ${multi ? 'is-multi' : ''}" style="--p:${Math.round((p / t.count) * 100)}%">
+      <button class="task-main" data-action="toggle" ${ds} aria-pressed="${done}"
+        title="${esc(t.desc || t.name)}${multi ? (done ? ' (click to start again)' : ' (click to add one run)') : ''}">
         <span class="check">${icon('check')}</span>
         <span class="task-name">${esc(t.name)}${t.mainOnly ? ` <span class="mini-crown" title="Main only">${icon('crown')}</span>` : ''}</span>
         ${multi ? `<span class="task-count">${p}/${t.count}</span>` : ''}
       </button>
+      ${multi ? `<button class="task-check" data-action="all-or-none" ${ds} aria-pressed="${done}"
+        aria-label="${done ? `Clear ${esc(t.name)}` : `Mark all ${t.count} ${esc(t.name)} done`}" title="${done ? 'Clear all' : `Mark all ${t.count} done`}">${icon('check')}</button>` : ''}
       ${multi && p > 0 ? `<button class="icon-btn xs" data-action="dec" ${ds} aria-label="Remove one from ${esc(t.name)}" title="Remove one">${icon('minus')}</button>` : ''}
-      ${multi && !done ? `<button class="row-max" data-action="max" ${ds} aria-label="Mark all ${t.count} ${esc(t.name)} done" title="Mark all ${t.count} done">${icon('checkAll')}<span>Max</span></button>` : ''}
     </li>`;
+  }
+
+  /* Leveling roadmap (character page): a timeline of level phases. The phase matching the
+     character's level is "Active" and opens by default; the others can be opened as needed. */
+  const rmOpen = new Map(); // charId -> Set of open phase keys (kept while the page is open)
+
+  function phaseInfo(c, p) {
+    const done = p.tasks.filter(([k]) => c.roadmap.done[k]).length;
+    const total = p.tasks.length;
+    const inRange = c.level >= p.min && c.level < p.max;
+    const status = done >= total ? 'complete' : inRange ? 'active' : c.level < p.min ? 'upcoming' : 'unfinished';
+    const nextTask = p.tasks.find(([k]) => !c.roadmap.done[k]);
+    return { done, total, pct: Math.round((done / total) * 100), status, inRange, next: nextTask ? nextTask[1] : '' };
+  }
+
+  const PHASE_LABEL = { complete: 'Complete', active: 'Active', upcoming: 'Upcoming', unfinished: 'Unfinished' };
+
+  function roadmapHTML(c) {
+    const infos = ROADMAP.map(p => ({ p, ...phaseInfo(c, p) }));
+    const current = infos.find(i => i.inRange) || infos[infos.length - 1];
+    if (!rmOpen.has(c.id)) rmOpen.set(c.id, new Set([current.p.key]));
+    const open = rmOpen.get(c.id);
+    const done = infos.reduce((n, i) => n + i.done, 0);
+    const pct = Math.round((done / ROADMAP_TOTAL) * 100);
+    const ds = `data-char="${esc(c.id)}"`;
+    const phases = infos.map((i, idx) => {
+      const p = i.p;
+      return `<details class="rm-phase is-${i.status}" data-phase="${p.key}" data-char="${esc(c.id)}" ${open.has(p.key) ? 'open' : ''} style="--p:${i.pct}%">
+        <summary>
+          <span class="rm-node">${i.status === 'complete' ? icon('check') : idx + 1}</span>
+          <span class="rm-title"><small>${esc(p.levels)}</small><b>${esc(p.name)}</b></span>
+          <span class="rm-status">${PHASE_LABEL[i.status]}</span>
+          <span class="rm-count"><b>${i.done}</b>/${i.total}</span>
+          <span class="rm-bar"><i></i></span>
+          <span class="rm-chev">${icon('down')}</span>
+        </summary>
+        <div class="rm-body">
+          ${p.desc ? `<p class="rm-desc">${esc(p.desc)}</p>` : ''}
+          <div class="rm-grid">
+            <ul class="rm-tasks">
+              ${p.tasks.map(([k, name]) => {
+                const on = !!c.roadmap.done[k];
+                return `<li><button class="rm-task ${on ? 'is-done' : ''}" data-action="rm-toggle" ${ds} data-task="${k}" aria-pressed="${on}">
+                  <span class="check">${icon('check')}</span><span>${esc(name)}</span></button></li>`;
+              }).join('')}
+            </ul>
+            <aside class="rm-guide">
+              <h5>${icon('flag')}Casual focus · ${esc(p.levels)}</h5>
+              <ul>${p.guidance.map(([text, g]) => `<li>${esc(text)}${g ? ` <button class="rm-link" data-action="open-guide" data-value="${g}">Guide ${icon('arrow')}</button>` : ''}</li>`).join('')}</ul>
+              <p class="rm-next">${i.next ? `Next objective: <b>${esc(i.next)}</b>` : `${icon('check')}Everything in this phase is done`}</p>
+            </aside>
+          </div>
+        </div>
+      </details>`;
+    }).join('');
+    return `<section class="board roadmap">
+      <header class="board-head">
+        <div class="ring" style="--p:${pct}%" role="img" aria-label="${done} of ${ROADMAP_TOTAL} roadmap tasks done">
+          <span><b>${pct}</b><small>%</small></span>
+        </div>
+        <div class="board-title">
+          <h3>Leveling roadmap</h3>
+          <p>Level ${c.level} · <b>${esc(current.p.levels)} ${esc(current.p.name)}</b> · ${done}/${ROADMAP_TOTAL} tasks</p>
+          <p class="board-reset">${icon('flag')}${current.next ? `Next: <b>${esc(current.next)}</b>` : 'This phase is complete'}</p>
+        </div>
+        <div class="board-tools">
+          <button class="btn ghost xs" data-action="open-guide">${icon('book')}Guide</button>
+          <button class="btn ghost xs" data-action="rm-expand" ${ds}>${icon('down')}${open.size === ROADMAP.length ? 'Collapse all' : 'Expand all'}</button>
+        </div>
+      </header>
+      <div class="rm-timeline">${phases}</div>
+    </section>`;
+  }
+
+  // Remember which phases are open when someone opens/closes them ("toggle" doesn't bubble).
+  document.addEventListener('toggle', e => {
+    const d = e.target;
+    if (!d.matches || !d.matches('.rm-phase')) return;
+    const set = rmOpen.get(d.dataset.char) || new Set();
+    if (d.open) set.add(d.dataset.phase); else set.delete(d.dataset.phase);
+    rmOpen.set(d.dataset.char, set);
+    const btn = $(`[data-action="rm-expand"][data-char="${d.dataset.char}"]`);
+    if (btn) btn.innerHTML = `${icon('down')}${set.size === ROADMAP.length ? 'Collapse all' : 'Expand all'}`;
+  }, true);
+
+  function openGuide(focusKey) {
+    const m = openModal({
+      title: 'Important progression rules',
+      size: 'wide',
+      body: `<p class="guide-intro">${icon('info')}These rules apply regardless of your chosen path. They're for information only, not tasks to tick.</p>
+        <div class="guide-grid">
+          ${GUIDE.map(g => `<article class="guide-card" id="guide-${g.key}">
+            <header><span class="gc-ico">${icon(g.icon)}</span><div><h4>${esc(g.title)}</h4><p>${esc(g.tagline)}</p></div></header>
+            <ul>${g.lines.map(l => (typeof l === 'string'
+              ? `<li>${esc(l)}</li>`
+              : `<li class="is-warn">${icon('alert')}<span>${esc(l.text)}</span></li>`)).join('')}</ul>
+          </article>`).join('')}
+        </div>`,
+      footer: '<button class="btn primary" data-m="close">Done</button>',
+    });
+    if (focusKey) {
+      const card = $(`#guide-${focusKey}`, m);
+      if (card) {
+        card.classList.add('is-focus');
+        setTimeout(() => card.scrollIntoView({ block: 'center', behavior: 'smooth' }), 60);
+      }
+    }
   }
 
   /* Full board on the character page: a progress ring header and one tile per activity. */
@@ -927,9 +1154,11 @@
             <div class="wl-days">${days.map(dayDot).join('')}</div>
           </div>
         </article>
+        ${c.level < 45 ? roadmapHTML(c) : '' /* still levelling: the roadmap matters most, so it leads */}
         ${boardHTML(c, 'daily')}
         ${boardHTML(c, 'weekly')}
         ${boardHTML(c, 'static')}
+        ${c.level >= 45 ? roadmapHTML(c) : ''}
       </section>
 
       <aside class="detail-side">
@@ -1286,8 +1515,6 @@
     }).join('');
     const letters = (rows[0] ? rows[0].slots : []).map(s => `<span>${esc(new Intl.DateTimeFormat(undefined, { weekday: 'narrow' }).format(s))}</span>`).join('');
 
-    const thisWeek = weeks.get(c.weekly.period) || { done: 0, total: 0 };
-    const twPct = thisWeek.total ? Math.round((thisWeek.done / thisWeek.total) * 100) : 0;
     return `<header class="panel-head">
         <h3>Completion history</h3>
         <span class="fine">${rows.length} week${rows.length === 1 ? '' : 's'}</span>
@@ -1303,10 +1530,6 @@
           <div><dt>Full days</dt><dd>${fullDays}</dd></div>
           <div><dt>Full weeks</dt><dd>${fullWeeks}</dd></div>
         </dl>
-      </div>
-      <div class="week-progress ${twPct >= 100 ? 'is-full' : ''}">
-        <div class="wp-top"><span>This week's weeklies</span><b>${thisWeek.done}<i>/${thisWeek.total}</i></b></div>
-        ${bar(twPct, `This week's weekly progress for ${c.name}`)}
       </div>
       <div class="hm" role="img" aria-label="Daily and weekly completion over the last ${months === 1 ? 'month' : `${months} months`}. Current streak ${st.current} days, best ${st.best}.">
         <div class="hm-row hm-head"><span class="hm-label"></span><div class="hm-cells">${letters}</div><span class="hm-week-h">Weekly</span></div>
@@ -1349,6 +1572,95 @@
     const next = { daily: sch.dailyNext, weekly: sch.weeklyNext };
     for (const el of $$('[data-countdown]')) el.textContent = fmtDur(next[el.dataset.countdown] - now);
     for (const el of $$('[data-when]')) el.textContent = fmtWhen.format(next[el.dataset.when]);
+    updateRift(now);
+  }
+
+  /* Spacetime Rift: portals open every 3 hours on the hour (GMT+3 server time) and can only be
+     entered during the first 5 minutes; the rift then stays active for the rest of that hour. */
+  const RIFT_HOURS = [2, 5, 8, 11, 14, 17, 20, 23]; // GMT+3
+  const RIFT_ENTRY_MS = 5 * 60e3;
+  const RIFT_EVENT_MS = 60 * 60e3;
+  const GMT3 = 3 * 36e5;
+  const fmtClock = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' });
+
+  // Portal opening times (ms) from yesterday to tomorrow, in order.
+  function riftSlots(now = Date.now()) {
+    const dayStart = Math.floor((now + GMT3) / 864e5) * 864e5 - GMT3; // midnight GMT+3, as a UTC instant
+    const out = [];
+    for (let d = -1; d <= 1; d++) for (const h of RIFT_HOURS) out.push(dayStart + d * 864e5 + h * 36e5);
+    return out;
+  }
+
+  function riftState(now = Date.now()) {
+    const slots = riftSlots(now);
+    return {
+      slots,
+      open: slots.find(s => now >= s && now < s + RIFT_ENTRY_MS) || null,   // enterable right now
+      active: slots.find(s => now >= s && now < s + RIFT_EVENT_MS) || null, // running (entry may be closed)
+      next: slots.find(s => s > now),
+    };
+  }
+
+  const hhmmss = ms => {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    return [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60].map(pad2).join(':');
+  };
+
+  function updateRift(now) {
+    const r = riftState(now);
+    for (const chip of $$('.rift-chip')) {
+      chip.classList.toggle('is-open', !!r.open);
+      $('[data-rift="label"]', chip).textContent = r.open ? 'Portal open' : 'Next portal';
+      $('[data-rift="when"]', chip).textContent = r.open ? 'Enter now' : fmtClock.format(r.next);
+      $('[data-rift="prefix"]', chip).textContent = r.open ? 'closes in' : 'in';
+      $('[data-rift="in"]', chip).textContent = fmtDur((r.open ? r.open + RIFT_ENTRY_MS : r.next) - now);
+    }
+    const box = $('#rift-live');
+    if (box) paintRift(box, r, now);
+  }
+
+  function paintRift(box, r, now) {
+    const status = $('.rift-status', box);
+    status.classList.toggle('is-open', !!r.open);
+    $('.rs-title', box).textContent = r.open ? 'Portal OPEN — enter now!' : 'Next portal opening';
+    $('.rs-sub', box).textContent = r.open
+      ? `Entry closes at ${fmtClock.format(r.open + RIFT_ENTRY_MS)} (your time)`
+      : `Opens at ${fmtClock.format(r.next)} your time · ${pad2(new Date(r.next + GMT3).getUTCHours())}:00 GMT+3`;
+    $('.rs-timer', box).textContent = hhmmss((r.open ? r.open + RIFT_ENTRY_MS : r.next) - now);
+    $('.rs-timer-label', box).textContent = r.open ? 'Closes in' : 'Opens in';
+    // The next 8 portals, starting with the one running now (if any).
+    const from = r.active || r.next;
+    const list = r.slots.filter(s => s >= from).slice(0, 8);
+    $('.rift-list', box).innerHTML = list.map(s => {
+      const st = now >= s && now < s + RIFT_ENTRY_MS ? 'open'
+        : now >= s && now < s + RIFT_EVENT_MS ? 'active'
+          : s === r.next ? 'next' : 'later';
+      const label = { open: 'Open now', active: 'Active · entry closed', next: 'Next', later: '' }[st];
+      const sameDay = new Date(s).toDateString() === new Date(now).toDateString();
+      return `<li class="rift-row is-${st}">
+        <span class="rr-local"><b>${esc(fmtClock.format(s))}</b><small>${sameDay ? 'Today' : esc(fmtDayShort.format(s))} · your time</small></span>
+        <span class="rr-server">${pad2(new Date(s + GMT3).getUTCHours())}:00 GMT+3</span>
+        ${label ? `<span class="rr-pill">${label}</span>` : `<span class="rr-in">in ${esc(fmtDur(s - now))}</span>`}
+      </li>`;
+    }).join('');
+  }
+
+  function openRift() {
+    openModal({
+      title: 'Spacetime Rift',
+      body: `<div id="rift-live">
+          <div class="rift-status">
+            <span class="rs-ico">${icon('rift')}</span>
+            <div class="rs-text"><b class="rs-title"></b><small class="rs-sub"></small></div>
+            <div class="rs-count"><small class="rs-timer-label"></small><b class="rs-timer"></b></div>
+          </div>
+          <p class="fine rift-note">Portals open every 3 hours at 02:00, 05:00, 08:00, 11:00, 14:00, 17:00, 20:00 and 23:00 (GMT+3 server time),
+            shown below in your own time. You can only enter during the <b>first 5 minutes</b>; the rift then stays active for the rest of the hour.</p>
+          <ul class="rift-list"></ul>
+        </div>`,
+      footer: '<button class="btn primary" data-m="close">Done</button>',
+    });
+    updateRift(Date.now());
   }
 
   /* ---------- 8. Modals ---------- */
@@ -2421,6 +2733,7 @@
     },
     inc(el) { setProgress(el, (c, t, p) => p + 1); },
     max(el) { setProgress(el, (c, t) => t.count); },
+    'all-or-none'(el) { setProgress(el, (c, t, p) => (p >= t.count ? 0 : t.count)); },
     // Clicking the last filled segment steps back one, so any count (including 0) can be reached.
     'set-prog'(el) { setProgress(el, (c, t, p) => { const v = +el.dataset.value; return p === v ? v - 1 : v; }); },
     info(el) {
@@ -2501,6 +2814,28 @@
     'open-settings'() { openSettings(); },
     'open-history'() { openHistory(); },
     'open-news'() { openNewsList(); },
+    'open-guide'(el) { openGuide(el.dataset.value); },
+    'open-rift'() { openRift(); },
+    'toggle-theme'() {
+      state.settings.theme = state.settings.theme === 'light' ? 'dark' : 'light';
+      save();
+      applyTheme();
+    },
+    'rm-toggle'(el) {
+      const c = getChar(el.dataset.char);
+      if (!c) return;
+      const k = el.dataset.task;
+      if (c.roadmap.done[k]) delete c.roadmap.done[k]; else c.roadmap.done[k] = true;
+      save();
+      rerender(el);
+    },
+    'rm-expand'(el) {
+      const c = getChar(el.dataset.char);
+      if (!c) return;
+      const set = rmOpen.get(c.id) || new Set();
+      rmOpen.set(c.id, set.size === ROADMAP.length ? new Set() : new Set(ROADMAP.map(p => p.key)));
+      rerender(el);
+    },
     'sign-in'() { signIn(); },
     account() { toggleAccountMenu(); },
     'account-backup'() { toggleAccountMenu(false); openSettings('data'); },
@@ -3054,8 +3389,8 @@
     if (!fb.ready) { slot.innerHTML = ''; return; }
     const u = fb.user;
     if (!u) {
-      slot.innerHTML = `<button class="btn signin-btn" data-action="sign-in" title="Sign in to sync your tracker across browsers and devices">
-          ${GOOGLE_G}<span>Sign in to sync</span></button>`;
+      slot.innerHTML = `<button class="signin-btn" data-action="sign-in" title="Sign in with Google to sync your tracker across browsers and devices">
+          <span class="g-chip">${GOOGLE_G}</span><span class="signin-text">Sign in to sync</span></button>`;
       return;
     }
     const pic = size => (u.photoURL
@@ -3257,35 +3592,29 @@
     news.popShownFor = latest.id;
     hideNewsPop();
     const more = unreadNews().length - 1;
-    const thumb = news.source !== 'cloud' && latest.thumb; // claude.ai pages can't show outside pictures
     const summary = textOf(latest.summary);
     const pop = document.createElement('aside');
     pop.id = 'news-pop';
-    pop.className = `news-pop ${thumb ? 'has-thumb' : ''}`;
+    pop.className = `news-pop ${more > 0 ? 'has-more' : ''}`;
     pop.setAttribute('role', 'status');
     pop.setAttribute('aria-label', 'New AION 2 announcement');
     pop.innerHTML = `
-      <div class="np-banner">
-        ${thumb ? `<img src="${esc(latest.thumb)}" alt="" loading="lazy">` : `<span class="np-banner-ico">${icon('news')}</span>`}
-        <span class="np-badges">
-          <span class="np-new">New</span>
-          ${more > 0 ? `<span class="np-more">+${more} more</span>` : ''}
-        </span>
-        <button class="np-x" data-np="close" aria-label="Dismiss">${icon('x')}</button>
-      </div>
+      <span class="np-medal" aria-hidden="true">${icon('news')}<i class="np-dot"></i></span>
       <div class="np-body">
-        <span class="np-kicker">${icon('news')}AION 2 announcement · <time>${esc(fmtAgo(latest.postedAt))}</time></span>
+        <div class="np-top">
+          <span class="np-kicker">New announcement</span>
+          <time class="np-time">${esc(fmtAgo(latest.postedAt))}</time>
+          <button class="np-x" data-np="close" aria-label="Dismiss" title="Dismiss">${icon('x')}</button>
+        </div>
         <b class="np-title"></b>
         ${summary ? '<p class="np-summary"></p>' : ''}
         <div class="np-actions">
-          <button class="btn primary sm" data-np="read">Read ${icon('arrow')}</button>
-          <button class="btn ghost sm" data-np="all">See all${more > 0 ? ` (${more + 1})` : ''}</button>
+          <button class="np-read" data-np="read">Read now ${icon('arrow')}</button>
+          <button class="np-all" data-np="all">${more > 0 ? `See all <span class="np-count">${more + 1}</span>` : 'All news'}</button>
         </div>
       </div>`;
     $('.np-title', pop).textContent = latest.title;
     if (summary) $('.np-summary', pop).textContent = summary;
-    const img = $('.np-banner img', pop);
-    if (img) img.addEventListener('error', () => { pop.classList.remove('has-thumb'); img.replaceWith(Object.assign(document.createElement('span'), { className: 'np-banner-ico', innerHTML: icon('news') })); });
     pop.addEventListener('click', e => {
       const b = e.target.closest('[data-np]');
       if (!b) return;
@@ -3420,6 +3749,7 @@
 
   /* ---------- 11. Start-up ---------- */
 
+  applyTheme(); // before the first paint, so light-mode users don't see a dark flash
   renderShell();
   const first = processResets();
   save({ sync: false }); // persists any upgrade from an older version (and the generated task ids) straight away
