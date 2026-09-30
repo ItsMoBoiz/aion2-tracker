@@ -28,7 +28,7 @@
   const SCHEMA = 2; // 2: main/alt roles, Aion 2 task lists, task details (description, location, info)
   const HISTORY_LIMIT = 156; // about three years of weeks
   const HEAT_RANGES = [1, 2, 3]; // months shown in the completion history heatmap
-  const SIDE_TABS = [['history', 'History'], ['notes', 'Notes'], ['stats', 'Stats'], ['gear', 'Gear'], ['calc', 'Calculations']];
+  const SIDE_TABS = [['roadmap', 'Roadmap'], ['history', 'History'], ['notes', 'Notes'], ['stats', 'Stats'], ['gear', 'Gear'], ['calc', 'Calculations']];
   // Personal notes. Limits keep the synced save well inside the storage's document size.
   const NOTES_MAX = 100;
   const NOTE_LEN = 1000;
@@ -926,7 +926,6 @@
       </button>
       ${multi ? `<button class="task-check" data-action="all-or-none" ${ds} aria-pressed="${done}"
         aria-label="${done ? `Clear ${esc(t.name)}` : `Mark all ${t.count} ${esc(t.name)} done`}" title="${done ? 'Clear all' : `Mark all ${t.count} done`}">${icon('check')}</button>` : ''}
-      ${multi && p > 0 ? `<button class="icon-btn xs" data-action="dec" ${ds} aria-label="Remove one from ${esc(t.name)}" title="Remove one">${icon('minus')}</button>` : ''}
     </li>`;
   }
 
@@ -1131,8 +1130,6 @@
   function detailHTML(c) {
     const draft = statsDrafts[c.id];
     const stats = draft || c.stats;
-    const s = summary(c, 'daily');
-    const days = c.weekly.log.concat({ start: c.daily.period, done: s.done, total: s.total, live: true });
     const k = calc(c);
     const side = state.ui.sideTab;
     return `<div class="detail" style="--cc:${classColor(c)}">
@@ -1141,7 +1138,14 @@
           ${avatar(c, 'lg')}
           <div class="hero-id">
             <h2>${esc(c.name)} ${roleBadge(c)}</h2>
-            <p>${metaLine(c)}</p>
+            <p class="hero-meta">
+              <span class="lvl-edit" title="Character level (the roadmap follows it)">
+                <button type="button" class="lvl-step" data-action="lvl-step" data-char="${esc(c.id)}" data-value="-1" aria-label="Level down" ${c.level <= 1 ? 'disabled' : ''}>${icon('minus')}</button>
+                <label><span>Lv</span><input type="number" class="lvl-input" data-level="${esc(c.id)}" min="1" max="999" value="${c.level}" aria-label="Level of ${esc(c.name)}"></label>
+                <button type="button" class="lvl-step" data-action="lvl-step" data-char="${esc(c.id)}" data-value="1" aria-label="Level up">${icon('plus')}</button>
+              </span>
+              ${[c.cls, c.race, c.server].filter(Boolean).map(esc).join(' <i>·</i> ')}
+            </p>
             ${c.notes ? `<p class="notes">${esc(c.notes)}</p>` : ''}
           </div>
           <div class="hero-actions">
@@ -1149,16 +1153,10 @@
             <button class="btn ghost sm" data-action="edit-char" data-char="${esc(c.id)}">${icon('edit')}Edit</button>
             <button class="btn ghost sm danger-text" data-action="delete-char" data-char="${esc(c.id)}">${icon('trash')}Delete</button>
           </div>
-          <div class="weeklog">
-            <span class="wl-label">Dailies completed this week</span>
-            <div class="wl-days">${days.map(dayDot).join('')}</div>
-          </div>
         </article>
-        ${c.level < 45 ? roadmapHTML(c) : '' /* still levelling: the roadmap matters most, so it leads */}
         ${boardHTML(c, 'daily')}
         ${boardHTML(c, 'weekly')}
         ${boardHTML(c, 'static')}
-        ${c.level >= 45 ? roadmapHTML(c) : ''}
       </section>
 
       <aside class="detail-side">
@@ -1169,6 +1167,7 @@
         </div>
         ${side === 'history' ? `<article class="panel heat">${heatmapHTML(c)}</article>` : ''}
         ${side === 'calc' ? `<article class="panel" id="calc-panel">${calcHTML(c)}</article>` : ''}
+        ${side === 'roadmap' ? `<article class="panel rm-panel">${roadmapHTML(c)}</article>` : ''}
         ${side === 'notes' ? `<article class="panel">
           <header class="panel-head"><h3>Notes for ${esc(c.name)}</h3>
             <button class="btn ghost xs" data-action="open-notes" title="See notes for every character and general notes">${icon('note')}All notes</button></header>
@@ -2686,6 +2685,19 @@
     } else toast('Stats saved.', { type: 'ok' });
   }
 
+  // Quick level change from the character header. Opens the roadmap phase the new level lands in.
+  function setLevel(c, level, el) {
+    const v = clamp(Math.round(num(level, c.level)), 1, 999);
+    if (v === c.level) { renderView(); return; }
+    const before = ROADMAP.find(p => c.level >= p.min && c.level < p.max);
+    c.level = v;
+    const after = ROADMAP.find(p => v >= p.min && v < p.max);
+    if (after && after !== before && rmOpen.has(c.id)) rmOpen.get(c.id).add(after.key);
+    save();
+    if (el) rerender(el); else render();
+    if (after && before && after !== before) toast(`${c.name} reached ${after.levels}: ${after.name}.`, { type: 'ok' });
+  }
+
   function setProgress(el, next) {
     const c = getChar(el.dataset.char);
     const t = c && state.tasks[el.dataset.kind].find(x => x.id === el.dataset.task);
@@ -2816,6 +2828,10 @@
     'open-news'() { openNewsList(); },
     'open-guide'(el) { openGuide(el.dataset.value); },
     'open-rift'() { openRift(); },
+    'lvl-step'(el) {
+      const c = getChar(el.dataset.char);
+      if (c) setLevel(c, c.level + num(el.dataset.value), el);
+    },
     'toggle-theme'() {
       state.settings.theme = state.settings.theme === 'light' ? 'dark' : 'light';
       save();
@@ -2954,6 +2970,17 @@
     e.preventDefault();
     const c = getChar(e.target.dataset.char);
     if (c) saveStats(c);
+  });
+
+  // Level typed into the character header: saved when the field is left or Enter is pressed.
+  document.addEventListener('change', e => {
+    const inp = e.target.closest && e.target.closest('[data-level]');
+    if (!inp) return;
+    const c = getChar(inp.dataset.level);
+    if (c) setLevel(c, inp.value);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.matches && e.target.matches('[data-level]')) e.target.blur();
   });
 
   // Progress sliders (used for activities with more than 20 runs).

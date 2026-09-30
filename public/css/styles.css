@@ -519,8 +519,54 @@ optgroup option { color: var(--ink); }
 .cp-pill.tiered { border-color: color-mix(in srgb, var(--tc) 50%, var(--line)); background: color-mix(in srgb, var(--tc) 10%, transparent); }
 .cp-pill.tiered small { color: var(--tc); }
 .cp-pill.tiered b { color: var(--tc); text-shadow: 0 0 10px color-mix(in srgb, var(--tc) 60%, transparent); }
-.side-tabs { margin: 0; }
-.side-tabs .seg-btn { padding: 0 4px; font-size: 0.74rem; }
+.seg.side-tabs { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.side-tabs .seg-btn { padding: 0 4px; font-size: 0.78rem; }
+
+/* Quick level control in the character header */
+.hero-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; }
+.lvl-edit {
+  display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: 999px;
+  background: var(--well); border: 1px solid var(--line);
+}
+.lvl-edit label { display: inline-flex; align-items: baseline; gap: 3px; padding: 0 2px 0 6px; cursor: text; }
+.lvl-edit label span { font-size: 0.72rem; font-weight: 800; color: var(--muted); }
+.lvl-input {
+  width: 3.2ch; min-height: 0; height: 22px; padding: 0; border: 0; border-radius: 4px; background: transparent;
+  color: var(--ink); font-weight: 900; font-size: 0.9rem; text-align: center; -moz-appearance: textfield;
+}
+.lvl-input::-webkit-outer-spin-button, .lvl-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.lvl-input:focus { box-shadow: 0 0 0 2px rgba(159, 180, 255, 0.4); }
+.lvl-step {
+  display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%;
+  background: transparent; color: var(--muted); cursor: pointer;
+}
+.lvl-step:hover:not(:disabled) { background: rgba(159, 180, 255, 0.15); color: var(--ink); }
+.lvl-step:disabled { opacity: 0.35; cursor: default; }
+.lvl-step .ico { width: 13px; height: 13px; stroke-width: 2.6; }
+
+/* Roadmap inside the right-hand column: same content, compact layout */
+.rm-panel { padding: 14px; }
+.rm-panel .board { gap: 10px; }
+.rm-panel .board-head {
+  grid-template-columns: auto minmax(0, 1fr); gap: 10px 12px; padding: 0 0 12px; border: 0; border-radius: 0;
+  background: none; box-shadow: none; border-bottom: 1px solid var(--line);
+}
+.rm-panel .ring { width: 58px; height: 58px; }
+.rm-panel .ring b { font-size: 1.1rem; }
+.rm-panel .board-title h3 { font-size: 0.95rem; }
+.rm-panel .board-title p { font-size: 0.78rem; }
+.rm-panel .board-tools { grid-column: 1 / -1; justify-content: flex-start; }
+.rm-panel .rm-timeline::before { left: 26px; }
+.rm-panel .rm-phase summary { grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 10px; padding: 10px; }
+.rm-panel .rm-bar { display: none; }
+.rm-panel .rm-count { display: none; }
+.rm-panel .rm-node { width: 32px; height: 32px; }
+.rm-panel .rm-title b { font-size: 0.9rem; }
+.rm-panel .rm-body { padding: 0 10px 12px; }
+.rm-panel .rm-grid { grid-template-columns: 1fr; gap: 10px; }
+.rm-panel .rm-task { min-height: 32px; font-size: 0.84rem; }
+.rm-panel .rm-status { font-size: 0.6rem; padding: 2px 7px; }
+.rm-panel .rm-phase[open] .rm-count, .rm-panel .rm-phase summary .rm-status + .rm-count { display: none; }
 .dot-warn { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); vertical-align: 2px; }
 
 /* Settings: hidden activities */
@@ -746,8 +792,6 @@ optgroup option { color: var(--ink); }
 .hero-id h2 { font-size: 1.45rem; font-weight: 900; overflow-wrap: anywhere; }
 .hero-id .notes { margin-top: 6px; font-size: 0.85rem; color: var(--ink-2); white-space: pre-wrap; }
 .hero-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.weeklog { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--line); }
-.wl-label { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .wl-days { display: flex; gap: 8px; flex-wrap: wrap; }
 .day { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .day i {
