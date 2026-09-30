@@ -21,6 +21,8 @@
   // Live updates only apply when app.js is loaded as a file from server/server.py or serve.ps1,
   // not when the app is bundled into one HTML page (tools/build-single-file.ps1).
   const SERVED_BY_APP_SERVER = !!(document.currentScript && /\/js\/app\.js/.test(document.currentScript.src));
+  // GitHub Pages: plain files only, so skip the local server's /__version and /api/news addresses.
+  const STATIC_HOST = /\.github\.io$/i.test(location.hostname);
 
   /* ---------- 1. Constants and defaults ---------- */
 
@@ -3607,7 +3609,7 @@
   // Static hosting (GitHub Pages): version.json holds the build id written at each deploy.
   async function checkForUpdate() {
     if (location.protocol === 'file:' || reloading) return false;
-    if (live.mode !== 'static') {
+    if (live.mode !== 'static' && !STATIC_HOST) {
       const data = await fetchJson('/__version');
       if (isObj(data) && isObj(data.files)) {
         live.mode = 'server';
@@ -4359,7 +4361,7 @@
 
   async function startNews() {
     if (SERVED_BY_APP_SERVER) {
-      news.source = 'server';
+      news.source = STATIC_HOST ? 'static' : 'server'; // GitHub Pages has no /api/news, only the saved files
       if (!(await loadHostedNews())) {
         news.source = 'static';
         if (!(await loadHostedNews())) { news.source = null; return; }
