@@ -185,7 +185,8 @@ optgroup option { color: var(--ink); }
 /* ---------- 3. Top bar, update banner, tabs ---------- */
 .topbar {
   position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30;
-  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px 20px;
+  /* Equal side columns keep the reset chips in the true centre, whatever loads on either side */
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: start; gap: 12px 20px;
   padding: 12px clamp(16px, 3vw, 32px);
   background: var(--chrome);
   -webkit-backdrop-filter: blur(18px) saturate(170%);
@@ -221,8 +222,7 @@ optgroup option { color: var(--ink); }
 .choice-kv { margin: 12px 0; }
 .choice-kv dd { font-weight: 700; }
 
-/* Anchored to the left so the chips don't move when the buttons on the right change width while loading */
-.resets { display: flex; justify-content: flex-start; gap: 10px; flex-wrap: wrap; }
+.resets { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
 .reset-chip {
   display: grid; grid-template-columns: auto auto; column-gap: 12px; align-items: baseline;
   padding: 6px 12px; border-radius: 12px;
@@ -238,9 +238,14 @@ optgroup option { color: var(--ink); }
 .rc-in { font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .rc-in b { color: var(--ink); font-weight: 800; }
 
+/* Wide screens: may wrap within the right column (items are top-aligned, so the chips never move).
+   Medium screens keep one line (see Responsive), phones wrap again. */
 .top-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 /* Keep the News button's space while the news loads, so nothing shifts when it appears */
 #news-btn[hidden] { display: inline-flex !important; visibility: hidden; }
+/* Same for the sync status line under the title, so the header height doesn't change once sign-in loads */
+#sync-status[hidden] { display: flex !important; visibility: hidden; }
+#sync-status:empty::after { content: "\00a0"; }
 /* Interactive map link: its own row under the header buttons, right-aligned */
 /* Interactive map link: right end of the character tabs row */
 .map-link {
@@ -1904,7 +1909,8 @@ optgroup option { color: var(--ink); }
 /* ---------- 9. Responsive ---------- */
 @media (max-width: 1480px) {
   .topbar { grid-template-columns: 1fr auto; }
-  .resets { grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; }
+  .top-actions { flex-wrap: nowrap; }
+  .resets { grid-column: 1 / -1; grid-row: 2; justify-content: center; }
 }
 
 @media (max-width: 980px) {
@@ -1916,7 +1922,7 @@ optgroup option { color: var(--ink); }
   .topbar { grid-template-columns: 1fr; }
   .top-actions { justify-content: flex-start; }
   .top-actions .btn.ghost span:not(.account-pic) { display: none; }
-  .top-actions { justify-content: flex-end; }
+  .top-actions { justify-content: flex-end; flex-wrap: wrap; }
   .signin-text { font-size: 0.8rem; }
   .top-actions .btn.ghost { padding: 0 11px; }
   .resets { flex-wrap: nowrap; }
@@ -2154,8 +2160,8 @@ optgroup option { color: var(--ink); }
 [data-theme="light"] .rift-row.is-active .rr-pill { color: #0891b2; }
 
 /* Theme switch button in the header */
-.theme-btn { width: 38px; padding: 0; }
-.theme-btn .ico { width: 18px; height: 18px; }
+.theme-btn, .icon-square { width: 38px; padding: 0; }
+.theme-btn .ico, .icon-square .ico { width: 18px; height: 18px; }
 
 /* ---------- 11. Launch countdown, Odyle Energy, growth, counters, share card, weekly recap ---------- */
 

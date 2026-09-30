@@ -698,6 +698,7 @@
     crown: '<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
     bolt: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
     chart: '<path d="M4 4v16h16"/><path d="M7 15l4-4 3 3 5-6"/>',
     image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
     share: '<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.9l7.6-4.3M8.2 13.1l7.6 4.3"/>',
@@ -1111,7 +1112,7 @@
           <button class="btn ghost news-btn" id="news-btn" data-action="open-news" title="Official AION 2 announcements" hidden>${icon('news')}<span>News</span><b class="news-badge" id="news-badge" hidden></b></button>
           <button class="btn ghost" data-action="open-guide" title="Important Progression Rules">${icon('book')}<span>Guide</span></button>
           <button class="btn ghost" data-action="open-history" title="Weekly history">${icon('history')}<span>History</span></button>
-          <button class="btn ghost" data-action="open-settings" title="Tasks, resets and scoring">${icon('sliders')}<span>Settings</span></button>
+          <button class="btn ghost icon-square" data-action="open-settings" title="Settings: tasks, resets and scoring" aria-label="Settings">${icon('gear')}</button>
           <button class="btn ghost theme-btn" id="theme-btn" data-action="toggle-theme"></button>
           <div id="account-slot" class="account-slot"></div>
         </div>
