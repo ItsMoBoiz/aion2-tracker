@@ -34,8 +34,8 @@
   const RIFT_LEADS = [0, 1, 2, 5, 10];
   const RIFT_SOUNDS = [['chime', 'Chime'], ['bell', 'Bell'], ['arcane', 'Arcane'], ['horn', 'War horn'], ['ping', 'Ping'], ['none', 'No sound']];
   // Character page side tabs. Completion history lives in the header's History window.
-  const SIDE_TABS = [['roadmap', 'Roadmap'], ['notes', 'Notes'], ['build', 'Stats & Gear'],
-    ['wallet', 'Currency'], ['collect', 'Collections'], ['growth', 'Growth']];
+  const SIDE_TABS = [['roadmap', 'Roadmap'], ['build', 'Stats & Gear'], ['wallet', 'Currency'],
+    ['collect', 'Collections'], ['growth', 'Growth'], ['notes', 'Notes']];
   const OLD_SIDE_TABS = { stats: 'build', gear: 'build', calc: 'build', history: 'roadmap' };
   // AION 2 global launch: 30 September 2026, 16:00 Qatar time (AST, UTC+3).
   const LAUNCH_AT = Date.parse('2026-09-30T16:00:00+03:00');
@@ -54,7 +54,13 @@
   // Collections (per character): counters with an optional target.
   const COLLECTIONS = [
     { key: 'feathers', name: 'Feathers', icon: 'feather', color: '#fbbf24', goal: 190, hint: 'Deliver about 190 for amulet materials, then collect the rest' },
-    { key: 'pets', name: 'Pets', icon: 'paw', color: '#34d399' },
+    // A group: its total is the sum of its parts.
+    { key: 'pantheons', name: 'Pantheons', icon: 'trophy', color: '#f5c96a', parts: [
+      { key: 'pantheon-artworks', name: 'Artworks', icon: 'image', goal: 122 },
+      { key: 'pantheon-colossi', name: 'Colossi', icon: 'user', goal: 8 },
+      { key: 'pantheon-statues', name: 'Statues', icon: 'gem', goal: 63 },
+    ] },
+    { key: 'pets', name: 'Pets', icon: 'paw', color: '#34d399', goal: 227 },
     { key: 'mounts', name: 'Mounts', icon: 'flag', color: '#60a5fa' },
     { key: 'genus', name: 'Genus Insight', icon: 'book', color: '#c084fc', unit: 'level' },
     { key: 'arcana', name: 'Arcana Cards', icon: 'sparkle', color: '#f472b6' },
@@ -192,7 +198,7 @@
      guidance. Task keys are permanent; progress is stored as c.roadmap.done[key]. `guide` links
      a guidance line to a Guide card. */
   const ROADMAP = [
-    { key: 'p1', min: 1, max: 10, levels: 'Level 1–10', name: 'Ishalgen',
+    { key: 'p1', min: 1, max: 10, levels: 'Level 1–10', name: 'Poeta',
       tasks: [['p1.main-story', 'Main Story'], ['p1.ascension', 'Ascension'], ['p1.start-gathering', 'Start Gathering'],
         ['p1.hideouts', 'Early Hideouts (as encountered)'], ['p1.stronghold', 'Early Stronghold']],
       guidance: [['Main Story drives progression.'], ['Gather nodes you pass — don\'t go out of your way, but don\'t ignore them.', 'gathering'],
@@ -230,6 +236,190 @@
         ['Strongholds, Hideouts, Nightmare, Feather collection, Spacetime Rift, Rift Strongholds/Hideouts: endgame progression.']] },
   ];
   const ROADMAP_TOTAL = ROADMAP.reduce((n, p) => n + p.tasks.length, 0);
+  // The first phase's zone is the faction's starting area.
+  const phaseName = (p, c) => (p.key === 'p1' && c && c.race === 'Asmodian' ? 'Ishalgen' : p.name);
+
+  /* Main story quests per faction, shown inside each roadmap phase: "level|quest|what to do".
+     Ticks are stored with the roadmap as c.roadmap.done['msq.<e|a>.<level>-<quest>'] but don't count
+     toward the phase's task totals. */
+  const MSQ_ELYOS = {
+    p1: [
+      '1|Poeta|Infiltrate Ishtar Castle',
+      '3|Rosy-fingered Dawn|Talk to Silvar at Dawn Legion Forward Base',
+      '3|Making Yourself Useful|Talk to Eaetos at Dawn Legion Forward Base',
+      '3|Lost Supplies|Talk to Arisel at Dawn Legion Forward Base',
+      '4|Withered Tree Daminu|Talk to Nania at Dawn Legion Forward Base',
+      '5|The Power in the Lake|Talk to Daminu at Daminu Forest',
+      '5|Fledgling Wings|Talk to Asahr in Ascension Subspace',
+      '6|Shattered Sky Island|Talk to Nania at Dawn Legion Forward Base',
+      '7|Search Preparation|Talk to Nania at Dawn Legion Forward Base',
+      '8|Drakana Heist|Talk to Nania at Migzatu Brigade Supply Depot',
+      '9|Brigade Base Neutralization|Talk to Caelid at Dawn Legion Forward Base',
+      '10|Dawn Legion|Wake up in the Dawn Legion Recovery Room',
+      '10|All Geared Up|Talk to Nania at Dawn Legion Base',
+    ],
+    p2: [
+      '11|Odyle Collection|Talk to Kaidros at Dawn Legion Base',
+      '11|Bird\'s-eye View|Talk to Gabru at the Cantas Valley Base',
+      '12|Valley of Hope|Talk to Luteros at the Coastal Camp',
+      '12|Soaring Free|Talk to Nania at the Coastal Camp',
+      '13|Visions in Smoke|Talk to Caelid at Dawn Legion Base',
+      '13|Illusion Cavaliers|Talk to Asahr at Dream Crossroad',
+      '14|Collapsed Barrier Tower|Talk to Rohin at the Eastern Cantas Campsite',
+      '15|Rampaging Spirits|Talk to Ione at the Collapsed Barrier Tower',
+      '16|Beyond Etheria|Talk to Ione at the Collapsed Barrier Tower',
+      '16|Undying Light|Talk to Laveis at Spirit\'s Rest',
+      '16|Awakened Hope|Talk to Hithanya at the Marsh Outpost',
+      '16|Empyrean Monolith|Talk to Luteros at Dawn Legion Base',
+      '16|Renewed Resolve|Talk to Luteros at Dawn Legion Base',
+      '18|A Gesture of Sincerity|Talk to Hepallin at Dawn Legion Base',
+      '19|Transformation Prep|Talk to Cecilia at the hideout in front of the ruins',
+      '20|Fortress Ruins Infiltration|Talk to Cecilia who infiltrated the Verteron Fortress Ruins',
+      '21|Kaisinel\'s Seal|Talk to Caelid at the Collapsed Pillar Hideout',
+      '21|Path to the Altar|Talk to Phernos at the Collapsed Pillar Hideout',
+      '22|Illusion Oratory|Talk to Phernos in front of the Illusion Oratory',
+      '22|Daeva in a Dream|Talk to Caelid in front of the Illusion Oratory',
+      '22|Wind Breeze Merchants|Talk to Caelid in front of the Illusion Oratory',
+      '22|Precious Minerals|Talk to Bao at Dawn Legion Temporary Outpost',
+      '24|Mutual Benefit|Talk to Caelid at Dawn Legion Temporary Outpost',
+      '24|Shugonapped|Talk to Caelid in front of Kochi\'s Quarters',
+      '24|Finding Kochi|Talk to Caelid in front of Kochi\'s Quarters',
+      '24|Mercenary Pursuit|Talk to Arin at the Wind Breeze Merchant HQ',
+      '24|Weapon\'s Owner|Talk to Astin at the Astin Mercenaries Base',
+      '25|Best Served Cold|Talk to Baison at the Astin Mercenaries Base',
+      '25|Hidden Scheme|Talk to Baison at the Astin Mercenaries Base',
+      '25|Crime Scene|Talk to Caelid in front of the Illicit Trade Spot',
+    ],
+    p3: [
+      '26|Thorough Preparation|Talk to Bao at the Eastern Shugo Station',
+      '28|Shugo Tracks|Talk to Caelid at the Aullaeu Village Border',
+      '29|Shugo in the Cellar|Talk to Bao at the Aullaeu Village Border',
+      '29|Exiled Aullaeu|Talk to Kochi at the cellar escape point',
+      '29|Holyaul Rescue Operation|Talk to Daki in the Forest of Exiles',
+      '30|Aulamus\'s Key|Talk to Kochi at the Abandoned Wind Breeze Office',
+      '30|Secrets of the Altar|Talk to Caelid in front of the Aullaeu Altar',
+      '30|Secrets Within Secrets|Talk to Caelid at the Aullaeu Village Border',
+      '32|An Uneasy Alliance|Talk to Nania at the Wind Breeze Merchant HQ',
+      '32|Rocky Tomb|Talk to Rodelos at the Rock Hill Outpost',
+      '32|Protectors of the Rock Hill|Talk to Rodelos at the Rock Hill Outpost',
+      '32|Another Dream|Talk to Dymones at Zumion Village',
+      '33|Shadow of the Canyon|Talk to Dymones at Zumion Village',
+      '33|Barrier Traces|Talk to Odite at the Canyon Campsite',
+      '33|Between Faith and Doubt|Talk to Dymones at Zumion Village',
+      '34|Headless Statue|Talk to Lachesis at the Alert Observation Post',
+      '34|Priests of Zumion|Talk to Luteros at the Destroyed Temple Site',
+      '35|Fragmented Tale|Talk to Phernos at the Alert Observation Post',
+      '35|Zumion\'s Ward|Talk to Phernos at the Alert Observation Post',
+      '36|Purifying Flame|Talk to Phernos at the Alert Observation Post',
+      '36|Perilous Purification|Talk to Gustino at the Hill of Purification',
+      '37|Activating Altar Purification Devices|Talk to Gustino at the Hill of Purification',
+      '37|Path to the Altar|Talk to Gustino at the Hill of Purification',
+      '37|Meslamtaeda\'s Poison|Talk to Gustino at the Hill of Purification',
+      '37|Those Who Remain|Talk to Caelid at the Canyon Campsite',
+      '37|Fire Temple|Talk to Dymones at Zumion Village',
+      '40|Where the Drana Flows|Talk to Dymones at Zumion Village',
+    ],
+    p4: [
+      '41|To the Scarlet Forest|Talk to Kepillia at the Tracker\'s Campsite',
+      '41|Sowing Seeds of Chaos|Talk to Caelid at the Scarlet Forest Observation Site',
+      '41|Notos Legion Makeover|Talk to Sthen at the Scarlet Forest Observation Site',
+      '41|Power Tower Sabotage|Talk to Sthen at the Scarlet Forest Observation Site',
+      '41|Thorough Preparation|Talk to Kepillia at Notos Legion Outpost',
+      '42|Striving for a Purpose|Talk to Kepillia at Notos Legion Outpost',
+      '42|Unpleasant Memories|Talk to Caelid at Notos Legion Outpost',
+      '42|A Balaur\'s Trash is a Daeva\'s Treasure|Talk to Caelid in front of the disposal plant entrance',
+      '43|Time Takes Its Toll|Talk to Dymones at Zumion Village',
+      '44|A Means to an End|Talk to Phernos at the Illusion Hideout entrance',
+      '44|Pilgrims of the Garden|Talk to Paitos at Pilgrim\'s Rest',
+      '44|Another Rift|Talk to Anteia at the Garden of the Illusion God',
+      '44|Memories of the Garden|Talk to Nestor at Pilgrim\'s Rest',
+      '45|The Path of Pilgrimage|Talk to Dorian at the Garden of the Illusion God',
+      '45|Sacred Offering|Talk to Dioni at Pilgrim\'s Rest',
+      '45|The Core of Illusion God|Talk to Caelid at the Ardus Shrine entrance',
+      '45|Diverging Paths|Talk to Phernos at the Ardus Shrine entrance',
+      '45|Draupnir|Talk to Dymones at Zumion Village',
+      '45|Witness to a Nightmare|Talk to Koro at the Abyss Base',
+      '46|Waiting for the Next Journey|Wait for the day to depart for Eltnen',
+    ],
+  };
+  // Asmodian main story. Level 25–40 is shared with the Elyos route.
+  const MSQ_ASMODIAN = {
+    p1: [
+      '1|Ishalgen|Infiltrate Fafnir Fortress',
+      '2|A Village in the Fog|Talk to Andre at Aldelle Village',
+      '2|Prepare to Escape|Talk to Ellin at Aldelle Village',
+      '3|Shadow Forest|Talk to Stellan at Aldelle Village',
+      '4|Isolated Lake|Talk to Pelleir at Aldelle Village',
+      '5|The Being Beneath the Lake|Talk to Elvida at her residence',
+      '6|Spread Your Wings|Talk to Asahr in the Ascension Subspace',
+      '6|Signs of a Crash Landing|Talk to Argit at Aldelle Village',
+      '7|Prison Compound Infiltration Plan|Talk to Garlond at Azrakar Brigade Camp',
+      '7|Brigade Prison Compound Infiltration Operation|Talk to Anders at the Azrakar Brigade Prison Compound entrance',
+      '9|The Longest Night|Talk to Pelleir at Aldelle Village',
+      '10|Finding Nemon|Talk to Nemon at Shadow Hall',
+      '10|Survival Supplies|Talk to Hans at Safe Haven',
+      '10|Gathering Essentials|Talk to VeKauf at Safe Haven',
+    ],
+    p2: [
+      '11|Crash Site Rendezvous|Talk to Dinoh at Safe Haven',
+      '11|Contaminated Area|Talk to Ulgorn at Galorik\'s Inspection Area',
+      '12|Express Daeva Delivery|Talk to Ulgorn at the Temporary Investigation Base',
+      '12|Veiled Truth|Talk to Ulgorn at Quai Campsite',
+      '13|Urgent Pursuit|Talk to Ulgorn at Quai Campsite',
+      '13|Cemetery Cleanup|Talk to Asahr at Dream Crossroad',
+      '14|Back on the Scent|Talk to Tagar at Gravekeeper Camp',
+      '15|Dead Men Tell No Tales|Talk to Kolina at the Neglected Crematorium',
+      '16|Buried Atrocities|Talk to Ulgorn in front of the Crypt',
+      '16|Empyrean Monolith|Talk to Ulgorn at Shadow Hall',
+      '18|A New Lead|Talk to Nemon at Shadow Hall',
+      '18|Malice Laid Bare|Talk to Menrik at Fang Hideout',
+      '19|Broken Fang|Talk to Menrik at Fang Hideout',
+      '19|Watchful Eyes|Talk to Gamilla at the Temporary Retreat',
+      '20|Imminent Threat|Talk to Bataar at Sanctum Dumpsite',
+      '20|Crossroad|Talk to Hadala at Safe Haven',
+      '21|Creeping Shadow|Talk to Nemon at the Watcher\'s Tent',
+      '21|Children of the Elim|Talk to Nemon at the Collapsed Chasm',
+      '21|In the Elims\' Name|Talk to Nemon at Elim\'s Rest',
+      '22|Verdant Melody|Talk to Nemon at Odar\'s Shade',
+      '22|Daeva in a Dream|Talk to Ecco at Odar\'s Shade',
+      '22|Disturbed Balance|Talk to Ecco at Odar\'s Shade',
+      '24|Searching for Survivors|Talk to Nemon at Odar\'s Shade',
+      '24|Prison Break|Talk to Nemon near the Northern Altar',
+      '24|Finding Stolen Relics|Talk to Hadala at Minushan Site',
+      '25|Voice of Rage|Talk to Gohok at Minushan Site',
+      '25|Tangled Past|Talk to Nemon at the Collapsed Oracle',
+    ],
+    p3: MSQ_ELYOS.p3,
+    p4: [
+      '41|Daybreak Society|Talk to Amunta at Zemurru\'s Tomb',
+      '41|Daybreak Society Rescue Operation|Talk to Nemon at the rendezvous point',
+      '42|The Breaking of the Day|Talk to Kumrica at Kumrica\'s Cellar',
+      '42|Chief of the Black Claw|Talk to Kumrica at Kumrica\'s Cellar',
+      '43|High Priest\'s Fafnite|Talk to Kumrica at Kumrica\'s Cellar',
+      '44|The High Priest Awakens|Talk to Nemon at Zemurru\'s Grave',
+      '44|Lingering Apparitions|Talk to Nemon at the Nornir Assembly',
+      '44|Blood Barrier|Talk to Nemon at Collapsed Hall of Fame',
+      '45|Zikel\'s Core|Talk to Nemon at Collapsed Hall of Fame',
+      '45|Farewells|Talk to Nemon at the outskirts of the Impetusium',
+      '45|Forgotten Commander|Talk to Menrik at Fang Hideout',
+      '45|Daeva Trapped in a Nightmare|Talk to Koro at the Abyss Base',
+      '46|Waiting for the Next Journey|Wait for the day to depart for Morheim',
+    ],
+  };
+  const msqSlug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  // faction -> phase key -> [{ k, lvl, name, action }]. Ticks are kept per faction (msq.e.* / msq.a.*).
+  const MSQ = {};
+  for (const [faction, prefix, src] of [['Elyos', 'e', MSQ_ELYOS], ['Asmodian', 'a', MSQ_ASMODIAN]]) {
+    MSQ[faction] = {};
+    for (const [pk, rows] of Object.entries(src)) {
+      MSQ[faction][pk] = rows.map(r => {
+        const [lvl, name, action] = r.split('|');
+        return { k: `msq.${prefix}.${lvl}-${msqSlug(name)}`, lvl: +lvl, name, action };
+      });
+    }
+  }
+  // Characters without a faction yet follow the Elyos list.
+  const msqFor = (c, pk) => MSQ[c.race === 'Asmodian' ? 'Asmodian' : 'Elyos'][pk];
 
   /* Progression path (character page, under one-time content): the recommended order from
      Level 45 to Sanctuary: Ludra, grouped by Gear Score. Keys are permanent; ticks are stored per
@@ -306,39 +496,49 @@
   const gpKeys = s => s.steps.flatMap(st => (st.subs ? st.subs.map(x => x.k) : [st.k]));
   const GEAR_PATH_TOTAL = GEAR_PATH.reduce((n, s) => n + gpKeys(s).length, 0);
 
-  /* Important Progression Rules (information only). Lines with warn: true are highlighted. */
+  /* Important Progression Rules (reading only, nothing to tick). Each topic: a one-line summary,
+     what to do, what to avoid, optionally why it matters, and one key rule shown highlighted.
+     Keys are linked from the leveling roadmap's guidance. */
   const GUIDE = [
-    { key: 'pet', icon: 'paw', title: 'Pet / Mount',
-      tagline: 'Account-wide progression — collect once, benefit all characters. Unlocks after the Level 10 "Gathering Essentials" quest.',
-      lines: ['Kill monsters → obtain Soul Shards → collect 10 → unlock Pet/Mount.', 'Pets become Mounts.',
-        'Pet/Mount stats and buffs are account-wide and shared between characters.',
-        'Pet/Mount progression becomes available after completing the Level 10 "Gathering Essentials" quest.',
-        'Pet/Mount collection is a parallel progression system.', 'Early priority should be collection rather than heavily farming one creature.',
-        { warn: true, text: 'Do not stop leveling to farm Souls. Kill monsters naturally while passing through areas during quests and collect Soul Shards as you progress.' }] },
-    { key: 'enchanting', icon: 'sparkle', title: 'Enchanting', tagline: 'Conserve resources for Level 45 gear.',
-      lines: ['Try not to heavily enchant gear before Level 45 — leveling gear is disposable and gets replaced quickly.',
-        'Weapon: a few upgrades are okay if you are struggling.', 'Avoid heavily enchanting temporary armor/accessories.',
-        'Do not waste enhancement materials on gear that will soon be replaced.',
-        { warn: true, text: 'Rune warning: do not recklessly break/use your runes. If an enhancement fails and the rune breaks, you will need to wait until you obtain more later.' }] },
-    { key: 'manastones', icon: 'gem', title: 'Manastones', tagline: 'Use wisely on leveling gear — save for Level 45.',
-      lines: ['Manastones can be used on leveling gear if needed.', 'You can use a Manastone once if needed.',
-        'Do not keep rerolling or repeatedly replacing Manastones on temporary leveling gear.', 'You will need Manastones later for better gear.',
-        'Avoid spending too many resources on gear that will soon be replaced.',
-        'Use resources when they give a meaningful benefit, but avoid heavily investing in temporary gear before Level 45.',
-        { warn: true, text: 'Manastones are limited. Do not waste them on gear you will replace at Level 45.' }] },
-    { key: 'kinah', icon: 'coin', title: 'Kinah', tagline: 'The most important resource — save it.',
-      lines: ['Kinah is needed for crafting, enchanting, buying items and other progression expenses.',
-        { warn: true, text: 'Do not waste your Kinah. Save Kinah while leveling.' }] },
-    { key: 'sidequests', icon: 'note', title: 'Side Quests', tagline: 'Check for valuable rewards — don\'t do all of them.',
-      lines: ['Check side quests for useful rewards, especially while leveling toward Level 45 through the Main Quest.',
-        'Do not complete every side quest automatically.', 'Prioritize side quests that give useful gear, important items or valuable rewards.',
-        { warn: true, text: 'Jewelry rule: before Level 30, don\'t prioritize Jewelry/Accessories from side quests. After Level 30 they can become useful.' }] },
-    { key: 'gathering', icon: 'leaf', title: 'Gathering', tagline: 'Level naturally while questing — avoid dedicated sessions later.',
-      lines: ['Gather naturally while questing — nodes you pass; don\'t go out of your way.',
-        'Top gear needs rare Odellium; gathering occasionally while questing prevents a long 1–2 hour gathering session later.',
-        'Other players also compete for gathering nodes.', 'Gathering should generally be leveled naturally while progressing.',
-        'Do not necessarily stop leveling for long dedicated gathering sessions.',
-        'Gathering levels are recommended targets, not hard requirements. You decide how much you want to gather.'] },
+    { key: 'pet', icon: 'paw', color: '#34d399', title: 'Pets & Mounts',
+      short: 'Shared by your whole account — collect widely, keep levelling.',
+      unlock: 'Opens up after the Level 10 quest "Gathering Essentials".',
+      do: ['Defeat monsters to pick up Soul Shards. Ten shards of one creature unlock it.',
+        'Aim for many different creatures early on. Variety beats farming a single one.',
+        'Keep in mind that pets grow into mounts later.'],
+      avoid: ['Pausing your levelling just to hunt for souls.'],
+      why: 'Every stat and buff from a pet or mount applies to all of your characters, and the collection grows alongside everything else you do.',
+      rule: 'Grab shards from the monsters already on your quest route instead of stopping to farm them.' },
+    { key: 'enchanting', icon: 'sparkle', color: '#60a5fa', title: 'Enchanting',
+      short: 'Hold your materials for the gear you\'ll keep at Level 45.',
+      do: ['A couple of weapon upgrades are fine if fights start to feel too hard.'],
+      avoid: ['Pushing enchant levels on gear you only wear while levelling. It gets replaced quickly.',
+        'Spending enhancement materials on temporary armour or accessories.'],
+      rule: 'Handle runes with care: a failed upgrade can break one, and getting another takes time.' },
+    { key: 'manastones', icon: 'gem', color: '#c084fc', title: 'Manastones',
+      short: 'A one-off boost while levelling is fine. Save the rest.',
+      do: ['Socket a manastone into levelling gear once if it genuinely helps.',
+        'Spend them when the gain is worth it.'],
+      avoid: ['Rerolling or swapping manastones again and again on temporary gear.',
+        'Pouring resources into items you\'ll replace at Level 45.'],
+      rule: 'Manastones are scarce, and your endgame gear will need them far more.' },
+    { key: 'kinah', icon: 'coin', color: '#f5c96a', title: 'Kinah',
+      short: 'Your single most valuable resource. Bank it.',
+      do: ['Save while levelling. Crafting, enchanting and shopping all draw on it later.'],
+      avoid: ['Spending it on things you don\'t need yet.'],
+      rule: 'Kinah saved now speeds up your gear once you reach the level cap.' },
+    { key: 'sidequests', icon: 'note', color: '#fb923c', title: 'Side Quests',
+      short: 'Pick out the valuable ones and skip the rest.',
+      do: ['Look over the rewards while you follow the Main Quest to Level 45.',
+        'Favour quests that hand out useful gear, key items or strong rewards.'],
+      avoid: ['Clearing every side quest out of habit.'],
+      rule: 'Jewellery: skip side-quest accessories below Level 30. From Level 30 on, they\'re worth taking.' },
+    { key: 'gathering', icon: 'leaf', color: '#2dd4bf', title: 'Gathering',
+      short: 'Gather as you travel so you never have to grind it later.',
+      do: ['Harvest the nodes that sit along your route.', 'Let your gathering level rise gradually as you progress.'],
+      avoid: ['Detouring for nodes, or stopping your levelling for long gathering sessions.'],
+      why: 'The best gear needs rare Odellium. A little gathering along the way saves a 1–2 hour grind later, and other players compete for the same nodes.',
+      rule: 'Suggested gathering levels are goals, not requirements. How much you gather is up to you.' },
   ];
 
   // The official values of one catalog entry, in the same shape as a task.
@@ -914,6 +1114,10 @@
           <button class="btn ghost" data-action="open-settings" title="Tasks, resets and scoring">${icon('sliders')}<span>Settings</span></button>
           <button class="btn ghost theme-btn" id="theme-btn" data-action="toggle-theme"></button>
           <div id="account-slot" class="account-slot"></div>
+          <div class="map-row">
+            <a class="map-link" href="https://interactivemap.app/aion2/maps/verteron" target="_blank" rel="noopener noreferrer"
+              title="Open the AION 2 interactive map in a new tab">${icon('pin')}<span>Interactive map</span>${icon('external')}</a>
+          </div>
         </div>
       </header>
       <div class="update-banner" id="update-banner" hidden>
@@ -1071,7 +1275,7 @@
       ${(() => {
         const done = ROADMAP.reduce((n, p) => n + p.tasks.filter(([k]) => c.roadmap.done[k]).length, 0);
         const cur = ROADMAP.find(p => c.level >= p.min && c.level < p.max) || ROADMAP[ROADMAP.length - 1];
-        return `<div class="static-line rm-line ${done === ROADMAP_TOTAL ? 'is-complete' : ''}" title="Leveling roadmap · ${esc(cur.levels)} ${esc(cur.name)}">
+        return `<div class="static-line rm-line ${done === ROADMAP_TOTAL ? 'is-complete' : ''}" title="Leveling roadmap · ${esc(cur.levels)} ${esc(phaseName(cur, c))}">
           ${icon('flag')}<span>Roadmap</span>${bar(Math.round((done / ROADMAP_TOTAL) * 100), `Leveling roadmap for ${c.name}`)}<b>${done}<i>/${ROADMAP_TOTAL}</i></b>
         </div>`;
       })()}
@@ -1129,6 +1333,34 @@
 
   const PHASE_LABEL = { complete: 'Complete', active: 'Active', upcoming: 'Upcoming', unfinished: 'Unfinished' };
 
+  // Main story quests of a phase, folded under its "Main Story" task. What to do sits behind an ⓘ.
+  const msqOpen = new Set(); // "charId:phase" open lists, kept while the page is open
+  function msqHTML(c, p) {
+    const list = msqFor(c, p.key);
+    if (!list) return '';
+    const ds = `data-char="${esc(c.id)}"`;
+    const n = list.filter(q => c.roadmap.done[q.k]).length;
+    const next = list.find(q => !c.roadmap.done[q.k]);
+    const key = `${c.id}:${p.key}`;
+    return `<li class="msq-wrap"><details class="msq ${n === list.length ? 'is-done' : ''}" data-msq="${esc(key)}" ${msqOpen.has(key) ? 'open' : ''}>
+      <summary>${icon('book')}<span>Story quests${c.race === 'Elyos' || c.race === 'Asmodian' ? '' : ' · Elyos'}</span>
+        <small>${next ? `Next: Lv ${next.lvl} ${esc(next.name)}` : 'All done'}</small><b>${n}/${list.length}</b>${icon('down')}</summary>
+      <ul class="msq-list">
+        ${list.map(q => {
+          const on = !!c.roadmap.done[q.k];
+          return `<li class="msq-row ${on ? 'is-done' : ''}">
+            <button class="msq-tick" data-action="msq-toggle" ${ds} data-task="${esc(q.k)}" data-value="${p.key}" aria-pressed="${on}">
+              <span class="check">${icon('check')}</span><span class="msq-lvl">${q.lvl}</span><span class="msq-name">${esc(q.name)}</span></button>
+            <span class="info-wrap">
+              <button class="info-btn" data-action="info" aria-expanded="false" aria-label="What to do for ${esc(q.name)}">${icon('infoMark')}</button>
+              <span class="info-pop" role="tooltip" hidden>${esc(q.action)}</span>
+            </span>
+          </li>`;
+        }).join('')}
+      </ul>
+    </details></li>`;
+  }
+
   function roadmapHTML(c) {
     const infos = ROADMAP.map(p => ({ p, ...phaseInfo(c, p) }));
     const current = infos.find(i => i.inRange) || infos[infos.length - 1];
@@ -1142,7 +1374,7 @@
       return `<details class="rm-phase is-${i.status}" data-phase="${p.key}" data-char="${esc(c.id)}" ${open.has(p.key) ? 'open' : ''} style="--p:${i.pct}%">
         <summary>
           <span class="rm-node">${i.status === 'complete' ? icon('check') : idx + 1}</span>
-          <span class="rm-title"><small>${esc(p.levels)}</small><b>${esc(p.name)}</b></span>
+          <span class="rm-title"><small>${esc(p.levels)}</small><b>${esc(phaseName(p, c))}</b></span>
           <span class="rm-status">${PHASE_LABEL[i.status]}</span>
           <span class="rm-count"><b>${i.done}</b>/${i.total}</span>
           <span class="rm-bar"><i></i></span>
@@ -1155,7 +1387,8 @@
               ${p.tasks.map(([k, name]) => {
                 const on = !!c.roadmap.done[k];
                 return `<li><button class="rm-task ${on ? 'is-done' : ''}" data-action="rm-toggle" ${ds} data-task="${k}" aria-pressed="${on}">
-                  <span class="check">${icon('check')}</span><span>${esc(name)}</span></button></li>`;
+                  <span class="check">${icon('check')}</span><span>${esc(name)}</span></button></li>
+                  ${/main-story$/.test(k) ? msqHTML(c, p) : ''}`;
               }).join('')}
             </ul>
             <aside class="rm-guide">
@@ -1174,7 +1407,7 @@
         </div>
         <div class="board-title">
           <h3>Leveling roadmap</h3>
-          <p>Level ${c.level} · <b>${esc(current.p.levels)} ${esc(current.p.name)}</b> · ${done}/${ROADMAP_TOTAL} tasks</p>
+          <p>Level ${c.level} · <b>${esc(current.p.levels)} ${esc(phaseName(current.p, c))}</b> · ${done}/${ROADMAP_TOTAL} tasks</p>
           <p class="board-reset">${icon('flag')}${current.next ? `Next: <b>${esc(current.next)}</b>` : 'This phase is complete'}</p>
         </div>
         <div class="board-tools">
@@ -1189,6 +1422,10 @@
   // Remember which phases are open when someone opens/closes them ("toggle" doesn't bubble).
   document.addEventListener('toggle', e => {
     const d = e.target;
+    if (d.matches && d.matches('.msq')) {
+      if (d.open) msqOpen.add(d.dataset.msq); else msqOpen.delete(d.dataset.msq);
+      return;
+    }
     if (d.matches && d.matches('.bd-sec')) {
       if (d.open) bdOpen.add(d.dataset.sec); else bdOpen.delete(d.dataset.sec);
       return;
@@ -1303,28 +1540,57 @@
     </section>`;
   }
 
+  // One topic of the rules window: summary, do / avoid columns, why it matters, and the key rule.
+  function ruleHTML(g) {
+    const i = GUIDE.indexOf(g);
+    const list = items => items.map(t => `<li>${esc(t)}</li>`).join('');
+    return `<article class="rule" style="--rc:${g.color}">
+      <header class="rule-head">
+        <span class="rule-ico">${icon(g.icon)}</span>
+        <div><small>Topic ${i + 1} of ${GUIDE.length}</small><h4>${esc(g.title)}</h4><p>${esc(g.short)}</p></div>
+      </header>
+      ${g.unlock ? `<p class="rule-unlock">${icon('flag')}${esc(g.unlock)}</p>` : ''}
+      <div class="rule-cols">
+        <section class="rule-do"><h5>${icon('check')}Do</h5><ul>${list(g.do)}</ul></section>
+        <section class="rule-avoid"><h5>${icon('x')}Avoid</h5><ul>${list(g.avoid)}</ul></section>
+      </div>
+      ${g.why ? `<p class="rule-why"><b>Why it matters</b>${esc(g.why)}</p>` : ''}
+      <div class="rule-key">${icon('sparkle')}<div><b>Key rule</b><p>${esc(g.rule)}</p></div></div>
+      <footer class="rule-foot">
+        <button type="button" class="btn ghost sm" data-m="rule-step" data-value="-1" ${i === 0 ? 'disabled' : ''}>${icon('arrow')}<span>Previous</span></button>
+        <button type="button" class="btn ghost sm" data-m="rule-step" data-value="1" ${i === GUIDE.length - 1 ? 'disabled' : ''}><span>Next</span>${icon('arrow')}</button>
+      </footer>
+    </article>`;
+  }
+
   function openGuide(focusKey) {
+    let cur = Math.max(0, GUIDE.findIndex(g => g.key === focusKey));
     const m = openModal({
       title: 'Important Progression Rules',
       size: 'wide',
-      body: `<p class="guide-intro">${icon('info')}These rules apply regardless of your chosen path. They're for information only, not tasks to tick.</p>
-        <div class="guide-grid">
-          ${GUIDE.map(g => `<article class="guide-card" id="guide-${g.key}">
-            <header><span class="gc-ico">${icon(g.icon)}</span><div><h4>${esc(g.title)}</h4><p>${esc(g.tagline)}</p></div></header>
-            <ul>${g.lines.map(l => (typeof l === 'string'
-              ? `<li>${esc(l)}</li>`
-              : `<li class="is-warn">${icon('alert')}<span>${esc(l.text)}</span></li>`)).join('')}</ul>
-          </article>`).join('')}
+      body: `<p class="rules-intro">${icon('info')}Advice that holds whichever way you play. It's here to read — nothing needs ticking off.</p>
+        <div class="rules">
+          <nav class="rules-nav" role="tablist" aria-label="Topics">
+            ${GUIDE.map((g, i) => `<button type="button" role="tab" class="rn-item" data-m="rule-go" data-value="${i}" style="--rc:${g.color}">
+              <span class="rn-ico">${icon(g.icon)}</span><span class="rn-text"><b>${esc(g.title)}</b><small>${esc(g.short)}</small></span></button>`).join('')}
+          </nav>
+          <div class="rules-body" id="rules-body" role="tabpanel"></div>
         </div>`,
       footer: '<button class="btn primary" data-m="close">Done</button>',
+      actions: {
+        'rule-go'(b) { show(num(b.dataset.value)); },
+        'rule-step'(b) { show(cur + num(b.dataset.value)); },
+      },
     });
-    if (focusKey) {
-      const card = $(`#guide-${focusKey}`, m);
-      if (card) {
-        card.classList.add('is-focus');
-        setTimeout(() => card.scrollIntoView({ block: 'center', behavior: 'smooth' }), 60);
-      }
+    function show(i) {
+      cur = clamp(i, 0, GUIDE.length - 1);
+      $('#rules-body', m).innerHTML = ruleHTML(GUIDE[cur]);
+      $$('.rn-item', m).forEach((b, j) => {
+        b.classList.toggle('is-active', j === cur);
+        b.setAttribute('aria-selected', String(j === cur));
+      });
     }
+    show(cur);
   }
 
   // Completed boards the person chose to show again ("charId:kind"; kept while the page is open).
@@ -1524,7 +1790,6 @@
     if (t.peak) next = 'Past 2,500: the top of the progression chart.';
     else if (t.next) next = `<b>${fmtInt(t.max - game)}</b> CP to <b>${esc(t.next.name)}</b>`;
     else next = `<b>${fmtInt(t.max - game)}</b> CP to 2,500`;
-    if (c.level < 45 && game >= 1000) next += `<span class="cph-hint">Endgame tiers usually start at level 45 (level ${c.level} now; change it with Edit).</span>`;
     return `<div class="cp-hero tier-${t.key} ${t.peak ? 'is-peak' : ''}" style="--tc:${t.color}">
         <div class="cph-top">
           <div class="cph-val"><small>Combat Power · ${auto ? 'Auto' : 'Manual'}</small><b data-cp-count ${ds} data-to="${game}">${fmtInt(game)}</b></div>
@@ -1568,29 +1833,9 @@
     return { ...t, index: i, frac, pos: (i + frac) / CP_TIERS.length, next: CP_TIERS[i + 1], peak: cp >= 2500 };
   }
 
-  // Counts the Combat Power number up when it first shows or changes.
-  const shownCp = {};
+  // Shows the Combat Power number (no count-up or other animation).
   function animateCp() {
-    const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    for (const el of $$('[data-cp-count]')) {
-      const id = el.dataset.char, to = num(el.dataset.to);
-      const from = shownCp[id] == null ? Math.round(to * 0.6) : shownCp[id];
-      shownCp[id] = to;
-      if (from === to || still) { el.textContent = fmtInt(to); continue; }
-      const hero = el.closest('.cp-hero');
-      if (hero && to > from) {
-        hero.classList.remove('is-rising');
-        void hero.offsetWidth; // restart the flash animation
-        hero.classList.add('is-rising');
-      }
-      const t0 = performance.now(), dur = 1100;
-      const step = now => {
-        const p = Math.min(1, (now - t0) / dur);
-        el.textContent = fmtInt(from + (to - from) * (1 - Math.pow(1 - p, 3)));
-        if (p < 1 && el.isConnected) requestAnimationFrame(step);
-      };
-      requestAnimationFrame(step);
-    }
+    for (const el of $$('[data-cp-count]')) el.textContent = fmtInt(num(el.dataset.to));
   }
 
   function openCpModal(c) {
@@ -1854,6 +2099,8 @@
   /* ---------- 7g. Currency tracker and collections ----------
      Simple per-character counters the player updates; some have a default target. */
   const counterDefs = kind => (kind === 'wallet' ? CURRENCIES : COLLECTIONS);
+  // Every editable counter, with group parts listed on their own (they take the group's colour).
+  const counterLeaves = kind => counterDefs(kind).flatMap(d => (d.parts ? d.parts.map(p => ({ ...p, color: d.color })) : [d]));
   function counterGoal(c, kind, d) {
     const g = c[kind].goals[d.key];
     return g === undefined ? num(d.goal) : g;
@@ -1862,32 +2109,37 @@
   function counterHTML(c, kind) {
     const wallet = kind === 'wallet';
     const ds = `data-char="${esc(c.id)}" data-kind="${kind}"`;
+    const row = (d, v, goal, tools, cls = '') => {
+      const pct = goal ? Math.min(100, Math.round((v / goal) * 100)) : 0;
+      return `<li class="counter ${cls} ${goal && v >= goal ? 'is-done' : ''}" style="--ic:${d.color}">
+        <span class="ct-ico">${icon(d.icon)}</span>
+        <div class="ct-body">
+          <div class="ct-top"><span class="ct-name">${esc(d.name)}</span>
+            <b class="ct-val">${d.unit === 'level' ? 'Lv ' : ''}${fmtInt(v)}${goal ? `<i> / ${fmtInt(goal)}</i>` : ''}</b></div>
+          ${goal ? `<div class="ct-bar"><i style="width:${pct}%"></i></div>` : ''}
+          ${d.hint && goal ? `<small class="ct-hint">${esc(d.hint)}</small>` : ''}
+        </div>
+        ${tools ? `<span class="ct-tools">${tools}</span>` : ''}
+      </li>`;
+    };
+    const tools = d => `${wallet ? '' : `<button class="icon-btn xs" data-action="counter-step" ${ds} data-value="${d.key}" title="Add one" aria-label="Add one ${esc(d.name)}">${icon('plus')}</button>`}
+      <button class="icon-btn xs" data-action="edit-counter" ${ds} data-value="${d.key}" title="Edit ${esc(d.name)}" aria-label="Edit ${esc(d.name)}">${icon('edit')}</button>`;
     return `<header class="panel-head"><h3>${wallet ? 'Currency' : 'Collections'}</h3>
         <span class="fine">${wallet ? 'Update from your inventory' : 'Tap + as you collect'}</span></header>
       <ul class="counters">
         ${counterDefs(kind).map(d => {
-          const v = num(c[kind].amounts[d.key]);
-          const goal = counterGoal(c, kind, d);
-          const pct = goal ? Math.min(100, Math.round((v / goal) * 100)) : 0;
-          return `<li class="counter ${goal && v >= goal ? 'is-done' : ''}" style="--ic:${d.color}">
-            <span class="ct-ico">${icon(d.icon)}</span>
-            <div class="ct-body">
-              <div class="ct-top"><span class="ct-name">${esc(d.name)}</span>
-                <b class="ct-val">${d.unit === 'level' ? 'Lv ' : ''}${fmtInt(v)}${goal ? `<i> / ${fmtInt(goal)}</i>` : ''}</b></div>
-              ${goal ? `<div class="ct-bar"><i style="width:${pct}%"></i></div>` : ''}
-              ${d.hint && goal ? `<small class="ct-hint">${esc(d.hint)}</small>` : ''}
-            </div>
-            <span class="ct-tools">
-              ${wallet ? '' : `<button class="icon-btn xs" data-action="counter-step" ${ds} data-value="${d.key}" title="Add one" aria-label="Add one ${esc(d.name)}">${icon('plus')}</button>`}
-              <button class="icon-btn xs" data-action="edit-counter" ${ds} data-value="${d.key}" title="Edit ${esc(d.name)}" aria-label="Edit ${esc(d.name)}">${icon('edit')}</button>
-            </span>
-          </li>`;
+          if (!d.parts) return row(d, num(c[kind].amounts[d.key]), counterGoal(c, kind, d), tools(d));
+          // Group: the total of its parts, then each part indented underneath.
+          const parts = d.parts.map(p => ({ ...p, color: d.color, v: num(c[kind].amounts[p.key]), goal: counterGoal(c, kind, p) }));
+          const total = parts.reduce((n, p) => n + p.v, 0), goal = parts.reduce((n, p) => n + p.goal, 0);
+          return `${row(d, total, goal, '', 'is-group')}
+            <li class="ct-parts"><ul class="counters">${parts.map(p => row(p, p.v, p.goal, tools(p), 'is-part')).join('')}</ul></li>`;
         }).join('')}
       </ul>`;
   }
 
   function openCounterModal(c, kind, key) {
-    const d = counterDefs(kind).find(x => x.key === key);
+    const d = counterLeaves(kind).find(x => x.key === key);
     if (!d) return;
     const goal = counterGoal(c, kind, d);
     const m = openModal({
@@ -2326,7 +2578,7 @@
       </header>
       <div class="range-pills" role="radiogroup" aria-label="Period shown">
         ${HEAT_RANGES.map(mo => `<button type="button" role="radio" class="range-pill ${mo === months ? 'is-active' : ''}" aria-checked="${mo === months}"
-          data-action="heat-range" data-value="${mo}">Last ${mo === 1 ? 'month' : `${mo} months`}</button>`).join('')}
+          data-action="heat-range" data-value="${mo}" title="Last ${mo === 1 ? 'month' : `${mo} months`}">${mo} mo</button>`).join('')}
       </div>
       <div class="streaks">
         <div class="streak-ring ${st.current ? 'is-hot' : ''}"><b>${st.current}</b><small>Day streak</small></div>
@@ -4014,6 +4266,22 @@
       if (!c) return;
       const set = rmOpen.get(c.id) || new Set();
       rmOpen.set(c.id, set.size === ROADMAP.length ? new Set() : new Set(ROADMAP.map(p => p.key)));
+      rerender(el);
+    },
+    'msq-toggle'(el) {
+      const c = getChar(el.dataset.char);
+      if (!c) return;
+      const k = el.dataset.task;
+      if (c.roadmap.done[k]) delete c.roadmap.done[k]; else c.roadmap.done[k] = true;
+      // Finishing every story quest of a phase also ticks that phase's "Main Story" task.
+      const p = ROADMAP.find(x => x.key === el.dataset.value);
+      const list = p && msqFor(c, p.key);
+      const main = p && p.tasks.find(([tk]) => /main-story$/.test(tk));
+      if (list && main && list.every(q => c.roadmap.done[q.k]) && !c.roadmap.done[main[0]]) {
+        c.roadmap.done[main[0]] = true;
+        toast(`All ${phaseName(p, c)} story quests done — "${main[1]}" ticked.`, { type: 'ok' });
+      }
+      save();
       rerender(el);
     },
     'edit-odyle'(el) { const c = getChar(el.dataset.char); if (c) openOdyleModal(c); },
