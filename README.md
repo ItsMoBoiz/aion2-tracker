@@ -1,59 +1,66 @@
 # Aion 2 - Progress Tracker
 
-Tracks daily and weekly activities, stats and gear for several characters.
-Runs entirely in the browser; data is saved in `localStorage`. There is no login and no backend database.
+Tracks daily, weekly and one-time activities, the leveling roadmap, the gear progression path, stats and
+gear for several characters.
 
-## Start
+**Live site:** https://itsmoboiz.github.io/aion2-tracker/
 
-Double-click **`start.bat`**. It uses Python 3 if it's installed, otherwise the built-in PowerShell server,
-then opens http://localhost:8080/.
+The site runs entirely in the browser and is hosted on GitHub Pages. Signing in with Google is optional:
+it syncs your data across browsers and devices. Without it, data stays in that browser.
 
-Or run a server yourself:
+## Using the site
 
-```
-python server\server.py [--port 8080] [--host 0.0.0.0] [--no-browser]
-powershell -ExecutionPolicy Bypass -File server\serve.ps1 [-Port 8080] [-NoBrowser]
-```
+Open the link above. Everything works straight away and is saved in the browser. Use **Sign in** (top right)
+to keep the same characters and progress on every device where you sign in with the same Google account.
 
-`--host 0.0.0.0` (Python server only) lets other devices on your network open the tracker.
-Each device keeps its own data.
+## Where data is saved
+
+- **Signed in:** each person's data is saved in their own private folder in Firebase
+  (`users/<uid>/docs`) and syncs across every browser where they sign in. Nobody else can read it.
+  The browser also keeps a copy for instant loading and offline use; the newest change wins.
+  The first time a device with existing data signs in, it asks which copy to keep.
+- **Not signed in:** data is saved only in that browser's `localStorage`.
+- **Backups:** Settings → Data exports and imports everything as a JSON file.
+  Settings → Tasks and Scoring can also be exported and imported on their own, to share with others.
+- **Clear all data** is only available to the site owner.
 
 ## Folder layout
 
 ```
 aion2-tracker/
-├─ start.bat            launcher (Python, else PowerShell)
-├─ server/
-│  ├─ server.py         main server (Python 3.7+, standard library only)
-│  └─ serve.ps1         fallback server (Windows PowerShell 5.1+)
+├─ .github/workflows/
+│  └─ pages.yml         deploys public/ to GitHub Pages and checks the news hourly
 ├─ public/              everything the browser loads (edit these)
 │  ├─ index.html
 │  ├─ css/styles.css
 │  ├─ js/app.js
+│  ├─ js/firebase-config.js   public Firebase web config + owner email hash
+│  ├─ vendor/firebase-10.12.2/ Firebase SDK (served locally)
 │  └─ assets/logo.svg
 ├─ tools/
-│  └─ build-single-file.ps1   bundles public/ into dist/ for the shareable link
-└─ dist/
-   └─ aion2-tracker.html      generated; don't edit by hand
+│  └─ fetch_news.py     saves the official announcements for the site
+├─ server/              optional local server
+│  ├─ server.py         Python 3.7+, standard library only
+│  └─ serve.ps1         fallback (Windows PowerShell 5.1+)
+├─ start.bat            starts the local server
+└─ firestore.rules      Firebase security rules (each user can only reach their own data)
 ```
 
-## Shareable link
+## Publishing changes
 
-The hosted version is at https://claude.ai/artifact/Jh6mtVPcqsarvcswYizSDH (private until shared from its Share menu).
-After changing files in `public/`, run `tools\build-single-file.ps1` and republish `dist/aion2-tracker.html`
-to the same link (keep its `db` and `user` capabilities). The hosted page doesn't update itself when
-local files change, and it offers backups through copy and paste instead of file downloads.
+Edit the files in `public/`, then commit and push to `main` (for example with GitHub Desktop:
+**Commit to main**, then **Push origin**). The workflow in `.github/workflows/pages.yml` publishes the
+site in about a minute. Check its progress under the repository's **Actions** tab.
 
-### Where data is saved
+Each deploy stamps a build id into `index.html` (so browsers fetch the new CSS/JS) and into
+`version.json`. Open pages check `version.json` every 60 seconds and reload when a new version is live.
+If a dialog is open or stats are unsaved, a "Reload now" banner appears instead. Saved data is not
+affected by a reload.
 
-- **Shared link:** each signed-in person's data is saved to their own private folder in the page's
-  database (`data/users/<id>/`) and syncs across every device where they open the link. Nobody else
-  can read it, including the page owner. The browser also keeps a copy for instant loading and
-  offline use; the newest change wins. People you share the link with need **Contributor** access
-  to save. With view-only access their data stays in their own browser.
-- **Local app (`start.bat`):** data is saved only in that browser's `localStorage`.
+Data from older versions is brought up to date automatically when it loads (`normalize()` in `app.js`),
+so code changes don't break saved progress.
 
-### Updating everyone's activity lists
+## Updating everyone's activity lists
 
 The official Aion 2 activities are the `CATALOG` list near the top of `public/js/app.js`. Each has a
 permanent `key` and a `rev` number. Everyone's saved lists are brought up to date the next time they
@@ -65,43 +72,48 @@ open the site:
 - **Removed from the game:** add `retired: true` and raise `rev`. It's hidden for everyone; past history stays.
 
 People's own activities, renames, hidden or deleted activities, and progress are never overwritten.
+Changes to someone's own lists in Settings only affect them.
 
-### Official news
+## Official news
 
-- **Local app:** the server relays the official announcements live
-  (`/api/news`, `/api/news/<id>` from the AION 2 community API, English notice board) and the
-  page refreshes them every 15 minutes.
-- **GitHub Pages site:** the deploy workflow runs `tools/fetch_news.py` on every push, saving the
-  announcements as `public/news/feed.json` and `public/news/<id>.json`, which the page reads.
-  Every hour on the hour it also checks the official list against the news already on the site and
-  redeploys only when there's a new or edited announcement; otherwise the run stops after the check.
-  (GitHub pauses scheduled runs if the repository has had no activity for 60 days; any push restarts them.)
-- **claude.ai link:** claude.ai pages can't load other websites, so the news there is a copy kept in
-  the page's shared storage (`news/feed` and `news/feed/articles/<id>`). Everyone can read it; only
-  the owner can change it. It is refreshed by asking Claude to update the news. Pictures inside
-  articles only show in the local app.
+The deploy workflow runs `tools/fetch_news.py` on every push, saving the official announcements
+(AION 2 English notice board) as `public/news/feed.json` and `public/news/<id>.json`, which the page reads.
+Every hour on the hour it also checks the official list against the news already on the site and redeploys
+only when there's a new or edited announcement; otherwise the run stops after the check.
+GitHub pauses scheduled runs if the repository has had no activity for 60 days; any push restarts them.
 
-## Live updates and caching
+## Firebase (sign-in and sync)
 
-- Every response is sent with `Cache-Control: no-cache` and an ETag, so browsers always check for a newer file.
-- `index.html` is served with a build hash in place of `__BUILD__`, so CSS/JS URLs change whenever a file changes.
-- Open pages check `/__version` every 2 seconds. A CSS change is applied without reloading. Any other change
-  reloads the page. If a dialog is open or stats are unsaved, a "Reload now" banner appears instead.
-  Saved data is not affected by a reload.
-- Data from older versions is automatically brought up to date when it loads (`normalize()` in `app.js`),
-  so code changes don't break saved progress.
+- `public/js/firebase-config.js` holds the Firebase **web** config. It is public by design and safe to
+  commit. Never commit service-account keys or other private credentials.
+- `firestore.rules` must be published in the Firebase console (Firestore → Rules) whenever it changes.
+- The site's domain (`itsmoboiz.github.io`) must be listed under Authentication → Settings →
+  Authorized domains.
+
+## Running it locally (optional)
+
+Double-click **`start.bat`**. It uses Python 3 if it's installed, otherwise the built-in PowerShell server,
+then opens http://localhost:8080/. Or run a server yourself:
+
+```
+python server\server.py [--port 8080] [--host 0.0.0.0] [--no-browser]
+powershell -ExecutionPolicy Bypass -File server\serve.ps1 [-Port 8080] [-NoBrowser]
+```
+
+The local server relays the official news live and reloads open pages within 2 seconds of a file change,
+which makes it handy for testing before you push. Data saved on `localhost` is separate from the live site.
 
 ## Resets
 
 - Default: weekly reset on **Wednesday 16:00 Asia/Qatar** (= Wed 09:00 Aion 2 server time); daily reset at 16:00.
-  You can change both in **Settings → Reset times**.
+  Both can be changed in **Settings → Reset times**.
 - All times are shown in the viewer's own time zone.
 - At each daily reset, the day's completion is logged. At each weekly reset, the week is archived to **History**
-  (up to 156 weeks). If the app was closed at reset time, this happens the next time it opens.
+  (up to 156 weeks). If the site was closed at reset time, this happens the next time it opens.
 
 ## Scoring
 
 Item score = item level × level weight × rarity multiplier + enchant × enchant weight.
 Gear Score = sum of all 15 slots. Stat Score = Σ stat × weight. Combat Power = Gear Score + Stat Score.
 All weights are editable in **Settings → Scoring**. These are tracking scores for comparing your own characters,
-not the game's official numbers.
+not the game's official numbers. Combat Power can also be entered by hand (Manual mode on the character page).
