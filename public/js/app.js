@@ -775,7 +775,7 @@
         </div>
         <div class="top-actions">
           <button class="btn ghost news-btn" id="news-btn" data-action="open-news" title="Official AION 2 announcements" hidden>${icon('news')}<span>News</span><b class="news-badge" id="news-badge" hidden></b></button>
-          <button class="btn ghost" data-action="open-guide" title="Important progression rules">${icon('book')}<span>Guide</span></button>
+          <button class="btn ghost" data-action="open-guide" title="Important Progression Rules">${icon('book')}<span>Guide</span></button>
           <button class="btn ghost" data-action="open-history" title="Weekly history">${icon('history')}<span>History</span></button>
           <button class="btn ghost" data-action="open-settings" title="Tasks, resets and scoring">${icon('sliders')}<span>Settings</span></button>
           <button class="btn ghost theme-btn" id="theme-btn" data-action="toggle-theme"></button>
@@ -1053,7 +1053,7 @@
 
   function openGuide(focusKey) {
     const m = openModal({
-      title: 'Important progression rules',
+      title: 'Important Progression Rules',
       size: 'wide',
       body: `<p class="guide-intro">${icon('info')}These rules apply regardless of your chosen path. They're for information only, not tasks to tick.</p>
         <div class="guide-grid">
@@ -1102,9 +1102,8 @@
             : `<p class="board-reset">${icon('clock')}Resets <span data-when="${kind}"></span> <b>in <span data-countdown="${kind}"></span></b></p>`}
         </div>
         <div class="board-tools">
-          <button class="btn ghost xs" data-action="check-all" ${ds}>${icon('check')}All done</button>
-          <button class="btn ghost xs" data-action="clear-list" ${ds}>${icon('refresh')}Reset all</button>
-          <button class="btn ghost xs ${manage ? 'is-on' : ''}" data-action="manage" ${ds} aria-pressed="${manage}">${icon('eye')}${manage ? 'Done' : 'Show / hide'}</button>
+          <button class="tool-icon" data-action="check-all" ${ds} title="Mark everything done" aria-label="Mark all ${kind === 'static' ? 'one-time' : kind} activities done">${icon('checkAll')}</button>
+          <button class="tool-icon" data-action="clear-list" ${ds} title="Reset all" aria-label="Reset all ${kind === 'static' ? 'one-time' : kind} activities">${icon('refresh')}</button>
         </div>
       </header>
       ${manage ? '<p class="fine board-note">Hidden activities don\'t count toward this character\'s progress.</p>' : ''}
@@ -1125,8 +1124,10 @@
       controls = `<button class="btn ghost sm block" data-action="hide-task" ${ds} aria-pressed="${!hidden}">
         ${icon(hidden ? 'eyeOff' : 'eye')}${hidden ? 'Hidden for this character' : 'Shown'}</button>`;
     } else if (t.count === 1) {
-      controls = `<button class="done-btn" data-action="toggle" ${ds} aria-pressed="${done}">
-        <span class="check">${icon('check')}</span>${done ? 'Done' : 'Mark as done'}</button>`;
+      controls = `<div class="stepper">
+          <button class="step complete-all ${done ? 'is-done' : ''}" data-action="toggle" ${ds} aria-pressed="${done}"
+            title="${done ? 'Mark as not done' : 'Mark as done'}" aria-label="${done ? `Mark ${esc(t.name)} as not done` : `Mark ${esc(t.name)} as done`}">${icon('check')}</button>
+        </div>`;
     } else {
       const meter = t.count <= 20
         ? `<div class="pips" role="group" aria-label="${esc(t.name)}: ${p} of ${t.count}" style="--n:${t.count}">
@@ -1776,7 +1777,7 @@
   function riftAlertHTML() {
     const a = state.settings.riftAlert;
     return `<header class="ra-head">
-        <span class="ra-title">${icon('bell')}Portal alert</span>
+        <span class="ra-title">${icon('bell')}${a.on ? 'Alert is on' : 'Alert is off'}</span>
         <label class="switch" title="${a.on ? 'Turn alerts off' : 'Turn alerts on'}">
           <input type="checkbox" id="ra-on" ${a.on ? 'checked' : ''} aria-label="Portal alert"><span></span>
         </label>
@@ -1814,6 +1815,14 @@
       : `Opens at ${fmtClock.format(r.next)} your time · ${pad2(new Date(r.next + GMT3).getUTCHours())}:00 GMT+3`;
     $('.rs-timer', box).textContent = hhmmss((r.open ? r.open + RIFT_ENTRY_MS : r.next) - now);
     $('.rs-timer-label', box).textContent = r.open ? 'Closes in' : 'Opens in';
+    const bell = $('.rs-bell', box), a = state.settings.riftAlert;
+    if (bell) {
+      bell.classList.toggle('is-on', a.on);
+      bell.title = a.on
+        ? `Alert on · ${a.lead ? `${a.lead} min before` : 'on time'} · ${(RIFT_SOUNDS.find(([k]) => k === a.sound) || [, 'Chime'])[1]}`
+        : 'Set up a portal alert';
+      bell.setAttribute('aria-label', bell.title);
+    }
     // The next 8 portals, starting with the one running now (if any).
     const from = r.active || r.next;
     const list = r.slots.filter(s => s >= from).slice(0, 8);
@@ -1832,6 +1841,27 @@
   }
 
   function openRift() {
+    openModal({
+      title: 'Spacetime Rift',
+      body: `<div id="rift-live">
+          <div class="rift-status">
+            <span class="rs-ico">${icon('rift')}</span>
+            <div class="rs-text"><b class="rs-title"></b><small class="rs-sub"></small></div>
+            <div class="rs-count"><small class="rs-timer-label"></small><b class="rs-timer"></b></div>
+            <button type="button" class="rs-bell" data-m="alerts" aria-haspopup="dialog">${icon('bell')}<i></i></button>
+          </div>
+          <p class="fine rift-note">Portals open every 3 hours at 02:00, 05:00, 08:00, 11:00, 14:00, 17:00, 20:00 and 23:00 (GMT+3 server time),
+            shown below in your own time. You can only enter during the <b>first 5 minutes</b>; the rift then stays active for the rest of the hour.</p>
+          <ul class="rift-list"></ul>
+        </div>`,
+      footer: '<button class="btn primary" data-m="close">Done</button>',
+      actions: { alerts() { openRiftAlerts(); } },
+    });
+    updateRift(Date.now());
+  }
+
+  // Portal alert setup, opened from the bell on the rift window.
+  function openRiftAlerts() {
     const saveAlert = patch => {
       Object.assign(state.settings.riftAlert, patch);
       save();
@@ -1840,18 +1870,8 @@
       updateRift(Date.now());
     };
     const m = openModal({
-      title: 'Spacetime Rift',
-      body: `<div id="rift-live">
-          <div class="rift-status">
-            <span class="rs-ico">${icon('rift')}</span>
-            <div class="rs-text"><b class="rs-title"></b><small class="rs-sub"></small></div>
-            <div class="rs-count"><small class="rs-timer-label"></small><b class="rs-timer"></b></div>
-          </div>
-          <section class="rift-alerts ${state.settings.riftAlert.on ? 'is-on' : ''}" id="rift-alerts">${riftAlertHTML()}</section>
-          <p class="fine rift-note">Portals open every 3 hours at 02:00, 05:00, 08:00, 11:00, 14:00, 17:00, 20:00 and 23:00 (GMT+3 server time),
-            shown below in your own time. You can only enter during the <b>first 5 minutes</b>; the rift then stays active for the rest of the hour.</p>
-          <ul class="rift-list"></ul>
-        </div>`,
+      title: 'Portal alert',
+      body: `<section class="rift-alerts ${state.settings.riftAlert.on ? 'is-on' : ''}" id="rift-alerts">${riftAlertHTML()}</section>`,
       footer: '<button class="btn primary" data-m="close">Done</button>',
       onChange(e) {
         const t = e.target;
@@ -1892,7 +1912,6 @@
         },
       },
     });
-    updateRift(Date.now());
   }
 
   /* ---------- 8. Modals ---------- */

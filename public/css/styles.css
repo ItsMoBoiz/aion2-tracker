@@ -671,6 +671,14 @@ optgroup option { color: var(--ink); }
 .board-reset { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-variant-numeric: tabular-nums; }
 .board-reset b { color: var(--ink); }
 .board-tools { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+/* Compact icon buttons in a section header (all done / reset all) */
+.tool-icon {
+  display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--line); background: rgba(var(--tint), 0.03); color: var(--ink-2);
+  transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+}
+.tool-icon .ico { width: 17px; height: 17px; }
+.tool-icon:hover { color: var(--kc, var(--accent)); border-color: color-mix(in srgb, var(--kc, var(--accent)) 55%, transparent); background: color-mix(in srgb, var(--kc, var(--accent)) 10%, transparent); }
 .board-note { padding: 0 4px; }
 
 .qt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 228px), 1fr)); gap: 12px; }
@@ -1716,7 +1724,22 @@ optgroup option { color: var(--ink); }
 .rift-row.is-next .rr-pill { color: #0b0e1a; background: #22d3ee; border-color: transparent; }
 @keyframes spin-slow { to { transform: rotate(360deg); } }
 
-/* Portal alert settings (in the rift window) */
+/* Bell on the rift status card: opens the alert setup; gold with a dot when alerts are on */
+.rs-bell {
+  position: relative; flex: none; display: grid; place-items: center; width: 40px; height: 40px; margin-left: 4px; padding: 0;
+  border-radius: 12px; cursor: pointer; color: var(--muted);
+  border: 1px solid var(--line); background: rgba(var(--tint), 0.03);
+  transition: color 0.15s, border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+}
+.rs-bell .ico { width: 19px; height: 19px; }
+.rs-bell:hover { color: var(--ink); border-color: var(--line-strong); }
+.rs-bell i { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: transparent; }
+.rs-bell.is-on { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 55%, transparent); background: color-mix(in srgb, var(--gold) 10%, transparent); }
+.rs-bell.is-on:hover { box-shadow: 0 0 14px color-mix(in srgb, var(--gold) 35%, transparent); }
+.rs-bell.is-on i { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+#rift-alerts { margin-bottom: 0; }
+
+/* Portal alert settings (own window) */
 .rift-bell { display: inline-flex; margin-left: 4px; color: var(--gold); }
 .rift-bell .ico { width: 12px; height: 12px; }
 .rift-alerts {
