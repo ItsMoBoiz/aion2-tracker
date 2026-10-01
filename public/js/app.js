@@ -888,10 +888,15 @@
     if (!state.legacyReset) return;
     state.legacyReset = false;
     const oldSch = schedule({ tz: 'Asia/Qatar', daily: { hour: 16, minute: 0 }, weekly: { weekday: 3, hour: 16, minute: 0 } });
-    const newSch = schedule(state.settings);
+    movePeriods(oldSch, state.settings);
+  }
+
+  // Re-keys each character's current day/week (per oldSch) to the period of the new schedule that
+  // contains its start. If the new schedule has already reset since then, processResets() clears it.
+  function movePeriods(oldSch, settings) {
     for (const c of state.characters) {
-      if (c.daily.period === oldSch.dailyStart) c.daily.period = newSch.dailyStart;
-      if (c.weekly.period === oldSch.weeklyStart) c.weekly.period = newSch.weeklyStart;
+      if (c.daily.period === oldSch.dailyStart) c.daily.period = schedule(settings, c.daily.period).dailyStart;
+      if (c.weekly.period === oldSch.weeklyStart) c.weekly.period = schedule(settings, c.weekly.period).weeklyStart;
     }
   }
 
@@ -3740,12 +3745,7 @@
 
   // Saves new settings; keeps the current period's progress when reset times change.
   function applySettings(settings, tasks) {
-    const oldSch = schedule(state.settings);
-    const newSch = schedule(settings);
-    for (const c of state.characters) {
-      if (c.daily.period === oldSch.dailyStart) c.daily.period = newSch.dailyStart;
-      if (c.weekly.period === oldSch.weeklyStart) c.weekly.period = newSch.weeklyStart;
-    }
+    movePeriods(schedule(state.settings), settings);
     state.settings = settings;
     state.tasks = tasks;
     const ids = new Set(KINDS.flatMap(k => tasks[k]).map(t => t.id));
